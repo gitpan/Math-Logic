@@ -16,7 +16,7 @@ use strict ;
 
 use vars qw( $Loaded $Count $DEBUG $TRIMWIDTH ) ;
 
-BEGIN { $| = 1 ; print "1..291\n" ; }
+BEGIN { $| = 1 ; print "1..342\n" ; }
 END   { print "not ok 1\n" unless $Loaded ; }
 
 use Math::Logic ':NUM' ;
@@ -2199,6 +2199,312 @@ eval {
     $y = 'Wilma' unless $x->incompatible( $y ) ;
 } ;
 report( "incompatible", 1, $@ ) ;
+
+# error messages
+
+eval {
+    Math::Logic->incompatible ;
+} ;
+report( "incompatible", 1, $@ ) ;
+
+eval {
+    $x->incompatible( 5 ) ;
+} ;
+report( "incompatible", 1, $@ ) ;
+
+
+
+
+$x = Math::Logic->new_from_string('1,2') ;
+$y = Math::Logic->new_from_string('0,3') ;
+$z = $x->and( 0 ) ;
+
+eval {
+    Math::Logic->_set ;
+} ;
+report( "_set", 1, $@ ) ;
+
+eval {
+    $x->_set( -fake ) ;
+} ;
+report( "_get", 1, $@ ) ;
+
+eval {
+    Math::Logic->_get ;
+} ;
+report( "_get", 1, $@ ) ;
+
+eval {
+    $x->_get( -fake ) ;
+} ;
+report( "_get", 1, $@ ) ;
+
+
+eval {
+    Math::Logic->_cmp ;
+} ;
+report( "_cmp", 1, $@ ) ;
+
+
+eval {
+    $x->_cmp( $y ) ;
+} ;
+report( "_cmp", 1, $@ ) ;
+
+
+eval {
+    $x = $y + 1 ;
+} ;
+report( "+", 1, $@ ) ;
+
+eval {
+    $x = $y - 1 ;
+} ;
+report( "-", 1, $@ ) ;
+
+eval {
+    $x = $y * 1 ;
+} ;
+report( "*", 1, $@ ) ;
+
+
+eval {
+    $x = $y / 1 ;
+} ;
+report( "/", 1, $@ ) ;
+
+
+eval {
+    $x = $y % 1 ;
+} ;
+report( "%%", 1, $@ ) ;
+
+
+eval {
+    $x = $y x 1 ;
+} ;
+report( "x", 1, $@ ) ;
+
+
+eval {
+    $x = $y ** 1 ;
+} ;
+report( "**", 1, $@ ) ;
+
+
+eval {
+    $x = $y << 1 ;
+} ;
+report( "<<", 1, $@ ) ;
+
+
+eval {
+    $x = $y >> 1 ;
+} ;
+report( ">>", 1, $@ ) ;
+
+
+eval {
+    $x = $y += 1 ;
+} ;
+report( "+=", 1, $@ ) ;
+
+
+eval {
+    $x = $y -= 1 ;
+} ;
+report( "-=", 1, $@ ) ;
+
+
+eval {
+    $x = $y *= 1 ;
+} ;
+report( "*=", 1, $@ ) ;
+
+
+eval {
+    $x = $y /= 1 ;
+} ;
+report( "/=", 1, $@ ) ;
+
+
+eval {
+    $x = $y %= 1 ;
+} ;
+report( "%%=", 1, $@ ) ;
+
+
+eval {
+    $x = $y x= 1 ;
+} ;
+report( "x=", 1, $@ ) ;
+
+eval {
+    $x = $y++ ;
+} ;
+report( "postfix++", 1, $@ ) ;
+
+eval {
+    $x = ++$y ;
+} ;
+report( "++prefix", 1, $@ ) ;
+
+eval {
+    $x = --$y ;
+} ;
+report( "--prefix", 1, $@ ) ;
+
+
+#eval {
+#    $x = $y-- ;
+#} ;
+#report( "postfix--", 1, $@ ) ;
+# Causes a segmentation fault under 5.004
+
+
+eval {
+    $x = $y lt 1 ;
+} ;
+report( "lt", 1, $@ ) ;
+
+
+eval {
+    $x = $y gt 1 ;
+} ;
+report( "gt", 1, $@ ) ;
+
+
+eval {
+    $x = $y ge 1 ;
+} ;
+report( "ge", 1, $@ ) ;
+
+
+eval {
+    $x = $y le 1 ;
+} ;
+report( "le", 1, $@ ) ;
+
+
+eval {
+    $x = $y eq 1 ;
+} ;
+report( "eq", 1, $@ ) ;
+
+
+eval {
+    $x = $y ne 1 ;
+} ;
+report( "ne", 1, $@ ) ;
+
+
+eval {
+    $x = $y **= 1 ;
+} ;
+report( "**=", 1, $@ ) ;
+
+
+eval {
+    $x = $y <<= 1 ;
+} ;
+report( "<<=", 1, $@ ) ;
+
+eval {
+    $x = $y >>= 1 ;
+} ;
+report( ">>=", 1, $@ ) ;
+
+
+eval {
+    $x = $y cmp 1 ;
+} ;
+report( "cmp", 1, $@ ) ;
+
+
+eval {
+    $x = -$y ;
+} ;
+report( "negate-", 1, $@ ) ;
+
+
+eval {
+    Math::Logic->value ;
+} ;
+report( "value", 1, $@ ) ;
+
+eval {
+    Math::Logic->degree ;
+} ;
+report( "degree", 1, $@ ) ;
+
+eval {
+    $x->degree( 5 ) ;
+} ;
+report( "degree", 1, $@ ) ;
+
+
+eval {
+    Math::Logic->propagate ;
+} ;
+report( "propagate", 1, $@ ) ;
+
+eval {
+    $x->propagate( 5 ) ;
+} ;
+report( "propagate", 1, $@ ) ;
+
+eval {
+    Math::Logic->incompatible ;
+} ;
+report( "incompatible", 1, $@ ) ;
+
+eval {
+    Math::Logic->as_string ;
+} ;
+report( "as_string", 1, $@ ) ;
+
+eval {
+    Math::Logic->and( $y ) ;
+} ;
+report( "and", 1, $@ ) ;
+
+eval {
+    $x->and( $y ) ;
+} ;
+report( "and", 1, $@ ) ;
+
+eval {
+    Math::Logic->or( $y ) ;
+} ;
+report( "or", 1, $@ ) ;
+
+eval {
+    $x->or( $y ) ;
+} ;
+report( "or", 1, $@ ) ;
+
+eval {
+    Math::Logic->xor( $y ) ;
+} ;
+report( "xor", 1, $@ ) ;
+
+eval {
+    $x->xor( $y ) ;
+} ;
+report( "xor", 1, $@ ) ;
+
+eval {
+    Math::Logic->not ;
+} ;
+report( "not", 1, $@ ) ;
+
+
+
+
+
+
+
+
 
 
 
