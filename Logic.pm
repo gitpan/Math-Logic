@@ -1,6 +1,6 @@
 package Math::Logic ;    # Documented at the __END__.
 
-# $Id: Logic.pm,v 1.15 2000/05/15 22:27:16 root Exp root $
+# $Id: Logic.pm,v 1.16 2000/05/25 19:15:01 root Exp root $
 
 
 require 5.004 ;
@@ -11,7 +11,7 @@ use integer ; # Forces us to quote all hash keys in 5.004.
 use Carp qw( croak carp ) ;
 
 use vars qw( $VERSION @ISA @EXPORT_OK %EXPORT_TAGS ) ;
-$VERSION     = '1.18' ;
+$VERSION     = '1.19' ;
 
 use Exporter() ;
 
@@ -991,6 +991,11 @@ If you use & on two incompatible Math::Logic objects perl dies; I believe that
 this is due to a problem with overload: it does not occur with perl 5.6.0.
 
 =head1 CHANGES
+
+2000/05/25
+
+No changes; just corrected an error in the tarball that meant the test would
+fail in some cases due to permissions problem.
 
 2000/05/22
 
