@@ -1,6 +1,6 @@
 package Math::Logic ;    # Documented at the __END__.
 
-# $Id: Logic.pm,v 1.7 2000/02/23 22:25:33 root Exp root $
+# $Id: Logic.pm,v 1.10 2000/04/16 07:24:00 root Exp root $
 
 
 require 5.004 ;
@@ -11,43 +11,60 @@ use integer ; # Forces us to quote all hash keys in 5.004.
 use Carp ;
 
 use vars qw( $VERSION @ISA @EXPORT_OK %EXPORT_TAGS ) ;
-$VERSION     = '1.11' ;
+$VERSION     = '1.13' ;
 
 use Exporter() ;
 
 @ISA         = qw( Exporter ) ;
 
-@EXPORT_OK   = qw( TRUE FALSE UNDEF STR_TRUE STR_FALSE STR_UNDEF ) ;
+@EXPORT_OK   = qw( $TRUE $FALSE $UNDEF TRUE FALSE UNDEF 
+                   $STR_TRUE $STR_FALSE $STR_UNDEF STR_TRUE STR_FALSE STR_UNDEF ) ;
 %EXPORT_TAGS = ( 
     ALL => [ @EXPORT_OK ],
-    NUM => [ qw( TRUE FALSE UNDEF ) ],
-    STR => [ qw( STR_TRUE STR_FALSE STR_UNDEF ) ],
+    NUM => [ qw( $TRUE $FALSE $UNDEF TRUE FALSE UNDEF ) ],
+    STR => [ qw( $STR_TRUE $STR_FALSE $STR_UNDEF STR_TRUE STR_FALSE STR_UNDEF ) ],
     ) ;
 
 
-### Public class constants
+### Public class constants 
 
-use constant TRUE          =>  1 ;
-use constant FALSE         =>  0 ;
-use constant UNDEF         => -1 ;
+use readonly 
+    '$TRUE'          => 1,
+    '$FALSE'         => 0,
+    '$UNDEF'         => -1,
 
-use constant STR_TRUE      => 'TRUE' ;
-use constant STR_FALSE     => 'FALSE' ;
-use constant STR_UNDEF     => 'UNDEF' ;
+    '$STR_TRUE'      => 'TRUE',
+    '$STR_FALSE'     => 'FALSE',
+    '$STR_UNDEF'     => 'UNDEF',
+    ;
+
+### Public class constants -- DEPRECATED
+
+use constant TRUE      => $TRUE ;
+use constant FALSE     => $FALSE ;
+use constant UNDEF     => $UNDEF ;
+
+use constant STR_TRUE  => $STR_TRUE ;
+use constant STR_FALSE => $STR_FALSE ;
+use constant STR_UNDEF => $STR_UNDEF ;
 
 
 ### Private class constants
 
-use constant DEF_VALUE     => FALSE() ;
-use constant DEF_DEGREE    => 3 ;
-use constant MIN_DEGREE    => 2 ;
-use constant DEF_PROPAGATE => FALSE() ;
+use readonly 
+    '$DEF_VALUE'     => $FALSE,
+    '$DEF_DEGREE'    => 3,
+    '$MIN_DEGREE'    => 2,
+    '$DEF_PROPAGATE' => $FALSE,
 
-use constant KEY_VALUE     => '-value' ;
-use constant KEY_DEGREE    => '-degree' ;
-use constant KEY_PROPAGATE => '-propagate' ;
+    '$KEY_VALUE'     => '-value',
+    '$KEY_DEGREE'    => '-degree',
+    '$KEY_PROPAGATE' => '-propagate',
+    ;
 
-use constant PROPAGATE     => KEY_PROPAGATE() ;
+use readonly 
+    '$PROPAGATE'     => $KEY_PROPAGATE,
+    ;
 
 
 ### Private data and methods 
@@ -59,9 +76,9 @@ use constant PROPAGATE     => KEY_PROPAGATE() ;
 
 {
     my %_valid_object_key = (
-        KEY_VALUE()     => undef,
-        KEY_DEGREE()    => undef,
-        KEY_PROPAGATE() => undef,
+        $KEY_VALUE     => undef,
+        $KEY_DEGREE    => undef,
+        $KEY_PROPAGATE => undef,
         ) ;
 
 
@@ -113,8 +130,8 @@ use constant PROPAGATE     => KEY_PROPAGATE() ;
         my $comp  = shift ;
 
         eval {
-            croak "is an object method"                unless ref $self ;
-            $comp = $self->new( KEY_VALUE() => $comp ) unless ref $comp ;
+            croak "is an object method"               unless ref $self ;
+            $comp = $self->new( $KEY_VALUE => $comp ) unless ref $comp ;
             croak $self->incompatible( $comp ) if $self->incompatible( $comp ) ;    
         } ;
         $class->_croak( $@ ) if $@ ;
@@ -137,17 +154,17 @@ sub new_from_string { # Class and object method
     if( defined $arg[0] ) {
         # 1, 0 and -1 pass through unchanged; -1 will be silently converted to
         # 0 except for 3-degree logic in $class->new
-        $arg[0] = TRUE()  if $arg[0] =~ /^-?[tT]/o ;
-        $arg[0] = FALSE() if $arg[0] =~ /^-?[fF]/o ;
-        $arg[0] = UNDEF() if $arg[0] =~ /^-?[uU]/o ; 
+        $arg[0] = $TRUE  if $arg[0] =~ /^-?[tT]/o ;
+        $arg[0] = $FALSE if $arg[0] =~ /^-?[fF]/o ;
+        $arg[0] = $UNDEF if $arg[0] =~ /^-?[uU]/o ; 
     }
-    $arg[2] = $arg[2] =~ /^-?[tTpP1]/o ? TRUE() : FALSE() if defined $arg[2] ; 
+    $arg[2] = $arg[2] =~ /^-?[tTpP1]/o ? $TRUE : $FALSE if defined $arg[2] ; 
 
     # Ignores settings of calling object if called as an object method.
     $class->new( 
-        KEY_VALUE()     => $arg[0] || DEF_VALUE(),
-        KEY_DEGREE()    => $arg[1] || DEF_DEGREE(),
-        KEY_PROPAGATE() => $arg[2] || DEF_PROPAGATE(),
+        $KEY_VALUE     => $arg[0] || $DEF_VALUE,
+        $KEY_DEGREE    => $arg[1] || $DEF_DEGREE,
+        $KEY_PROPAGATE => $arg[2] || $DEF_PROPAGATE,
         ) ;
 }
 
@@ -160,49 +177,49 @@ sub new { # Class and object method
 
     # Set defaults plus parameters
     $self = {
-            KEY_VALUE()     => DEF_VALUE(),
-            KEY_DEGREE()    => DEF_DEGREE(),
-            KEY_PROPAGATE() => DEF_PROPAGATE(),
+            $KEY_VALUE     => $DEF_VALUE,
+            $KEY_DEGREE    => $DEF_DEGREE,
+            $KEY_PROPAGATE => $DEF_PROPAGATE,
             %arg
         } ;
 
     # If called as an object method use the calling object's settings unless a
     # parameter has overridden
     if( defined $object ) {
-        $self->{KEY_VALUE()}     = $object->value     
-        unless exists $arg{KEY_VALUE()} ; 
-        $self->{KEY_DEGREE()}    = $object->degree    
-        unless exists $arg{KEY_DEGREE()} ; 
-        $self->{KEY_PROPAGATE()} = $object->propagate 
-        unless exists $arg{KEY_PROPAGATE()} ; 
+        $self->{$KEY_VALUE}     = $object->value     
+        unless exists $arg{$KEY_VALUE} ; 
+        $self->{$KEY_DEGREE}    = $object->degree    
+        unless exists $arg{$KEY_DEGREE} ; 
+        $self->{$KEY_PROPAGATE} = $object->propagate 
+        unless exists $arg{$KEY_PROPAGATE} ; 
     }
     
     # Ensure the settings are valid
-    $self->{KEY_PROPAGATE()} = $self->{KEY_PROPAGATE()} ? TRUE() : FALSE() ;
+    $self->{$KEY_PROPAGATE} = $self->{$KEY_PROPAGATE} ? $TRUE : $FALSE ;
 
-    $self->{KEY_DEGREE()}    = DEF_DEGREE() 
-    unless $self->{KEY_DEGREE()} =~ /^\d+$/o ;
-    $self->{KEY_DEGREE()}    = MIN_DEGREE() 
-    if $self->{KEY_DEGREE()} < MIN_DEGREE() ; 
+    $self->{$KEY_DEGREE}    = $DEF_DEGREE 
+    unless $self->{$KEY_DEGREE} =~ /^\d+$/o ;
+    $self->{$KEY_DEGREE}    = $MIN_DEGREE 
+    if $self->{$KEY_DEGREE} < $MIN_DEGREE ; 
 
-    $self->{KEY_VALUE()} = DEF_VALUE() if $self->{KEY_VALUE()} !~ /^(?:\d+|-1)$/o ;
+    $self->{$KEY_VALUE} = $DEF_VALUE if $self->{$KEY_VALUE} !~ /^(?:\d+|-1)$/o ;
 
-    if( $self->{KEY_DEGREE()} == 2 ) {      # 2-degree logic
-        $self->{KEY_VALUE()} = ( $self->{KEY_VALUE()} CORE::and 
-                                 $self->{KEY_VALUE()} != UNDEF() ) ? 
-                                    TRUE() : FALSE() ;
-        delete $self->{KEY_PROPAGATE()} ;   # Don't store what we don't use
+    if( $self->{$KEY_DEGREE} == 2 ) {      # 2-degree logic
+        $self->{$KEY_VALUE} = ( $self->{$KEY_VALUE} CORE::and 
+                                $self->{$KEY_VALUE} != $UNDEF ) ? 
+                                    $TRUE : $FALSE ;
+        delete $self->{$KEY_PROPAGATE} ;   # Don't store what we don't use
     }
-    elsif( $self->{KEY_DEGREE()} == 3 ) {   # 3-degree logic
-        if( $self->{KEY_VALUE()} != UNDEF() ) {
-            $self->{KEY_VALUE()} = $self->{KEY_VALUE()} ? TRUE() : FALSE() ;
+    elsif( $self->{$KEY_DEGREE} == 3 ) {   # 3-degree logic
+        if( $self->{$KEY_VALUE} != $UNDEF ) {
+            $self->{$KEY_VALUE} = $self->{$KEY_VALUE} ? $TRUE : $FALSE ;
         }
     }
     else {                                  # Multi-degree logic
-        $self->{KEY_VALUE()} = FALSE() if $self->{KEY_VALUE()} == UNDEF() ;
-        $self->{KEY_VALUE()} = $self->{KEY_DEGREE()} 
-        if $self->{KEY_VALUE()} > $self->{KEY_DEGREE()} ;
-        delete $self->{KEY_PROPAGATE()} ;   # Don't store what we don't use
+        $self->{$KEY_VALUE} = $FALSE if $self->{$KEY_VALUE} == $UNDEF ;
+        $self->{$KEY_VALUE} = $self->{$KEY_DEGREE} 
+        if $self->{$KEY_VALUE} > $self->{$KEY_DEGREE} ;
+        delete $self->{$KEY_PROPAGATE} ;   # Don't store what we don't use
     }
 
     bless $self, $class ;
@@ -263,25 +280,25 @@ sub value { # Object method
         my $result ;
 
         if( $self->degree == 2 ) {      # 2-degree logic
-            $result = ( $value CORE::and $value != UNDEF() ) ? TRUE() : FALSE() ;
+            $result = ( $value CORE::and $value != $UNDEF ) ? $TRUE : $FALSE ;
         }
         elsif( $self->degree == 3 ) {   # 3-degree logic
-            $result = $value ? TRUE() : FALSE() ;
-            $result = UNDEF() if $value == UNDEF() ;
+            $result = $value ? $TRUE : $FALSE ;
+            $result = $UNDEF if $value == $UNDEF ;
         }
         else {                          # Multi-degree logic
             $result = $value ;
-            # UNDEF() is -1 which doesn't match the pattern, hence we can
+            # $UNDEF is -1 which doesn't match the pattern, hence we can
             # abbreviate the following line
-            # $result = FALSE() if $value == UNDEF() CORE::or $value !~ /^\d+$/o ;
-            $result = FALSE() if $value !~ /^\d+$/o ;
+            # $result = $FALSE if $value == $UNDEF CORE::or $value !~ /^\d+$/o ;
+            $result = $FALSE if $value !~ /^\d+$/o ;
             $result = $self->degree if $result > $self->degree ;
         }
 
-        $self->_set( KEY_VALUE() => $result ) ;
+        $self->_set( $KEY_VALUE => $result ) ;
     }
     
-    $self->_get( KEY_VALUE() ) ;
+    $self->_get( $KEY_VALUE ) ;
 }
 
 
@@ -295,7 +312,7 @@ sub degree { # Object method
     } ;
     $class->_croak( $@ ) if $@ ;
     
-    $self->_get( KEY_DEGREE() ) ;
+    $self->_get( $KEY_DEGREE ) ;
 }
 
 
@@ -309,7 +326,7 @@ sub propagate { # Object method
     } ;
     $class->_croak( $@ ) if $@ ;
     
-    $self->degree == 3 ? $self->_get( KEY_PROPAGATE() ) : FALSE() ;
+    $self->degree == 3 ? $self->_get( $KEY_PROPAGATE ) : $FALSE ;
 }
 
 
@@ -346,7 +363,7 @@ sub compatible { # DEPRECATED Object method
         croak "is an object method" unless ref $self ;
         croak "can only be applied to $class objects not " . 
               ( ref( $comp ) || $comp )
-        if ( CORE::not ref $comp ) CORE::or 
+        if ( CORE::not ref $comp )              CORE::or 
            ( CORE::not $comp->can( 'degree' ) ) CORE::or 
            ( CORE::not $comp->can( 'propagate' ) ) ;
     } ;
@@ -368,18 +385,18 @@ sub as_string { # Object method
     my $result = '' ;
 
     if( $self->degree == 2 ) {      # 2-degree logic
-        $result = $self->value ? STR_TRUE() : STR_FALSE() ;
+        $result = $self->value ? $STR_TRUE : $STR_FALSE ;
     }
     elsif( $self->degree == 3 ) {   # 3-degree logic
-        $result = $self->value ? STR_TRUE() : STR_FALSE() ;
-        $result = STR_UNDEF() if $self->value == UNDEF() ;
+        $result = $self->value ? $STR_TRUE : $STR_FALSE ;
+        $result = $STR_UNDEF if $self->value == $UNDEF ;
     }
     else {                          # Multi-degree logic
-        if( $self->value == FALSE() ) {
-            $result = STR_FALSE() ;
+        if( $self->value == $FALSE ) {
+            $result = $STR_FALSE ;
         }
         elsif( $self->value == $self->degree ) {
-            $result = STR_TRUE() ;
+            $result = $STR_TRUE ;
         }
         else {
             $result = $self->value ;
@@ -389,7 +406,7 @@ sub as_string { # Object method
 
     # e.g. $logic->as_string( -full ) ;
     $result = "($result," . $self->degree . 
-                ( $self->propagate ? "," . PROPAGATE() : '' ) . ")" if $full ; 
+                ( $self->propagate ? "," . $PROPAGATE : '' ) . ")" if $full ; 
 
     $result ;
 }
@@ -401,8 +418,8 @@ sub and { # Object method
     my $comp  = shift ;
 
     eval {
-        croak "is an object method"                unless ref $self ;
-        $comp = $self->new( KEY_VALUE() => $comp ) unless ref $comp ;
+        croak "is an object method"               unless ref $self ;
+        $comp = $self->new( $KEY_VALUE => $comp ) unless ref $comp ;
         croak $self->incompatible( $comp ) if $self->incompatible( $comp ) ;    
     } ;
     $class->_croak( $@ ) if $@ ;
@@ -411,35 +428,35 @@ sub and { # Object method
     my $result = $self->new ;
 
     if( $self->degree == 2 ) {      # 2-degree logic
-        $value = ( $self->value CORE::and $comp->value ) ? TRUE() : FALSE() ;
+        $value = ( $self->value CORE::and $comp->value ) ? $TRUE : $FALSE ;
     }
     elsif( $self->degree == 3 ) {   # 3-degree logic
         if( $self->propagate ) {
-            if( $self->value == UNDEF() CORE::or $comp->value == UNDEF() ) {
+            if( $self->value == $UNDEF CORE::or $comp->value == $UNDEF ) {
                 # At least one is undefined which propagates.
-                $value = UNDEF() ;
+                $value = $UNDEF ;
             }
-            elsif( $self->value == TRUE() CORE::and $comp->value == TRUE() ) {
+            elsif( $self->value == $TRUE CORE::and $comp->value == $TRUE ) {
                 # They're both defined and true.
-                $value = TRUE() ;
+                $value = $TRUE ;
             }
             else {
                 # They're both defined and at least one is false.
-                $value = FALSE() ;
+                $value = $FALSE ;
             }
         }
         else {
-            if( $self->value == TRUE() CORE::and $comp->value == TRUE() ) {
+            if( $self->value == $TRUE CORE::and $comp->value == $TRUE ) {
                 # Both are defined and true.
-                $value = TRUE() ;
+                $value = $TRUE ;
             }
-            elsif( $self->value == FALSE() CORE::or $comp->value == FALSE() ) {
+            elsif( $self->value == $FALSE CORE::or $comp->value == $FALSE ) {
                 # At least one is defined and false.
-                $value = FALSE() ;
+                $value = $FALSE ;
             }
             else {
                 # Either both are undefined or only one is defined and true.
-                $value = UNDEF() ;
+                $value = $UNDEF ;
             }
         }
     }
@@ -460,8 +477,8 @@ sub or { # Object method
     my $comp  = shift ;
 
     eval {
-        croak "is an object method"                unless ref $self ;
-        $comp = $self->new( KEY_VALUE() => $comp ) unless ref $comp ;
+        croak "is an object method"               unless ref $self ;
+        $comp = $self->new( $KEY_VALUE => $comp ) unless ref $comp ;
         croak $self->incompatible( $comp ) if $self->incompatible( $comp ) ;    
     } ;
     $class->_croak( $@ ) if $@ ;
@@ -470,35 +487,35 @@ sub or { # Object method
     my $result = $self->new ;
 
     if( $self->degree == 2 ) {      # 2-degree logic
-        $value = ( $self->value CORE::or $comp->value ) ? TRUE() : FALSE() ;
+        $value = ( $self->value CORE::or $comp->value ) ? $TRUE : $FALSE ;
     }
     elsif( $self->degree == 3 ) {   # 3-degree logic
         if( $self->propagate ) {
-            if( $self->value == UNDEF() CORE::or $comp->value == UNDEF() ) {
+            if( $self->value == $UNDEF CORE::or $comp->value == $UNDEF ) {
                 # At least one is undefined which propagates.
-                $value = UNDEF() ;
+                $value = $UNDEF ;
             }
-            elsif( $self->value == TRUE() CORE::or $comp->value == TRUE() ) {
+            elsif( $self->value == $TRUE CORE::or $comp->value == $TRUE ) {
                 # They're both defined and at least one is true.
-                $value = TRUE() ;
+                $value = $TRUE ;
             }
             else {
                 # They're both defined and both are false.
-                $value = FALSE() ;
+                $value = $FALSE ;
             }
         }
         else {
-            if( $self->value == TRUE() CORE::or $comp->value == TRUE() ) {
+            if( $self->value == $TRUE CORE::or $comp->value == $TRUE ) {
                 # At least one is defined and true.
-                $value = TRUE() ;
+                $value = $TRUE ;
             }
-            elsif( $self->value == FALSE() CORE::and $comp->value == FALSE() ) {
+            elsif( $self->value == $FALSE CORE::and $comp->value == $FALSE ) {
                 # They're both defined and false.
-                $value = FALSE() ;
+                $value = $FALSE ;
             }
             else {
                 # Either both are undefined or one is defined and false.
-                $value = UNDEF() ;
+                $value = $UNDEF ;
             }
         }
     }
@@ -519,8 +536,8 @@ sub xor { # Object method
     my $comp  = shift ;
 
     eval {
-        croak "is an object method"                unless ref $self ;
-        $comp = $self->new( KEY_VALUE() => $comp ) unless ref $comp ;
+        croak "is an object method"               unless ref $self ;
+        $comp = $self->new( $KEY_VALUE => $comp ) unless ref $comp ;
         croak $self->incompatible( $comp ) if $self->incompatible( $comp ) ;    
     } ;
     $class->_croak( $@ ) if $@ ;
@@ -529,21 +546,21 @@ sub xor { # Object method
     my $result = $self->new ;
 
     if( $self->degree == 2 ) {      # 2-degree logic
-        $value = ( $self->value CORE::xor $comp->value ) ? TRUE() : FALSE() ;
+        $value = ( $self->value CORE::xor $comp->value ) ? $TRUE : $FALSE ;
     }
     elsif( $self->degree == 3 ) {   # 3-degree logic
         # Same truth table whether propagating or not.
-        if( $self->value == UNDEF() CORE::or $comp->value == UNDEF() ) {
+        if( $self->value == $UNDEF CORE::or $comp->value == $UNDEF ) {
             # At least one is undefined which propagates.
-            $value = UNDEF() ;
+            $value = $UNDEF ;
         }
         elsif( $self->value == $comp->value ) {
             # Both are defined and they're both the same.
-            $value = FALSE() ;
+            $value = $FALSE ;
         }
         else {
             # Both are defined and they're different.
-            $value = TRUE() ;
+            $value = $TRUE ;
         }
     }
     else {                          # Multi-degree logic
@@ -571,21 +588,21 @@ sub not { # Object method
     my $result = $self->new ;
 
     if( $self->degree == 2 ) {      # 2-degree logic
-        $value = ( $self->value ? FALSE() : TRUE() ) ;
+        $value = ( $self->value ? $FALSE : $TRUE ) ;
     }
     elsif( $self->degree == 3 ) {   # 3-degree logic
         # Same truth table whether propagating or not.
-        if( $self->value == UNDEF() ) {
+        if( $self->value == $UNDEF ) {
             # It's undefined which propogates.
-            $value = UNDEF() ;
+            $value = $UNDEF ;
         }
-        elsif( $self->value == TRUE() ) {
+        elsif( $self->value == $TRUE ) {
             # It's defined and true so return false.
-            $value = FALSE() ;
+            $value = $FALSE ;
         }
         else {
             # It's defined and false so return true.
-            $value = TRUE() ;
+            $value = $TRUE ;
         }
     }
     else {                          # Multi-degree logic
@@ -614,46 +631,46 @@ Math::Logic - Provides pure 2, 3 or multi-value logic.
 
 =head1 SYNOPSIS
 
-	use Math::Logic qw( TRUE FALSE UNDEF STR_TRUE STR_FALSE STR_UNDEF ) ;
-                    #      1     0    -1    'TRUE'   'FALSE'   'UNDEF'
+    use Math::Logic qw( $TRUE $FALSE $UNDEF $STR_TRUE $STR_FALSE $STR_UNDEF ) ;
+                    #       1      0     -1     'TRUE'    'FALSE'    'UNDEF'
 
-    use Math::Logic ':NUM' ; # TRUE FALSE UNDEF -- what you normally want
+    use Math::Logic ':NUM' ; # $TRUE $FALSE $UNDEF -- what you normally want
 
-	use Math::Logic ':ALL' ; # All the constants
+    use Math::Logic ':ALL' ; # All the constants
 
-    use Math::Logic ':STR' ; # STR_TRUE STR_FALSE STR_UNDEF
+    use Math::Logic ':STR' ; # $STR_TRUE $STR_FALSE $STR_UNDEF
 
     # 2-degree logic
-    my $true  = Math::Logic->new( -value => TRUE,  -degree => 2 ) ;
-    my $false = Math::Logic->new( -value => FALSE, -degree => 2 ) ;
+    my $true  = Math::Logic->new( -value => $TRUE,  -degree => 2 ) ;
+    my $false = Math::Logic->new( -value => $FALSE, -degree => 2 ) ;
     my $x     = Math::Logic->new_from_string( 'TRUE,2' ) ;
 
     print "true" if $true ;
 
     # 3-degree logic (non-propagating)
-    my $true  = Math::Logic->new( -value => TRUE,  -degree => 3 ) ;
-    my $false = Math::Logic->new( -value => FALSE, -degree => 3 ) ;
-    my $undef = Math::Logic->new( -value => UNDEF, -degree => 3 ) ;
+    my $true  = Math::Logic->new( -value => $TRUE,  -degree => 3 ) ;
+    my $false = Math::Logic->new( -value => $FALSE, -degree => 3 ) ;
+    my $undef = Math::Logic->new( -value => $UNDEF, -degree => 3 ) ;
     my $x     = Math::Logic->new_from_string( 'FALSE,3' ) ;
 
-    print "true" if ( $true | $undef ) == TRUE ;
+    print "true" if ( $true | $undef ) == $TRUE ;
 
     # 3-degree logic (propagating)
-    my $true  = Math::Logic->new( -value => TRUE,  -degree => 3, -propagate => 1 ) ;
-    my $false = Math::Logic->new( -value => FALSE, -degree => 3, -propagate => 1 ) ;
-    my $undef = Math::Logic->new( -value => UNDEF, -degree => 3, -propagate => 1 ) ;
+    my $true  = Math::Logic->new( -value => $TRUE,  -degree => 3, -propagate => 1 ) ;
+    my $false = Math::Logic->new( -value => $FALSE, -degree => 3, -propagate => 1 ) ;
+    my $undef = Math::Logic->new( -value => $UNDEF, -degree => 3, -propagate => 1 ) ;
     my $x     = Math::Logic->new_from_string( '( UNDEF, 3, -propagate )' ) ;
 
-    print "undef" if ( $true | $undef ) == UNDEF ;
+    print "undef" if ( $true | $undef ) == $UNDEF ;
 
     # multi-degree logic
-    my $TRUE   = 100 ; # Define our own true
-    my $FALSE  = FALSE ;
-    my $true   = Math::Logic->new( -value => $TRUE,  -degree => $TRUE ) ;
-    my $very   = Math::Logic->new( -value => 67,     -degree => $TRUE ) ;
-    my $fairly = Math::Logic->new( -value => 33,     -degree => $TRUE ) ;
-    my $false  = Math::Logic->new( -value => $FALSE, -degree => $TRUE ) ;
-    my $x      = Math::Logic->new_from_string( "25,$TRUE" ) ;
+    my $True   = 100 ; # Define our own true
+    my $False  = $FALSE ;
+    my $true   = Math::Logic->new( -value => $True,  -degree => $True ) ;
+    my $very   = Math::Logic->new( -value => 67,     -degree => $True ) ;
+    my $fairly = Math::Logic->new( -value => 33,     -degree => $True ) ;
+    my $false  = Math::Logic->new( -value => $False, -degree => $True ) ;
+    my $x      = Math::Logic->new_from_string( "25,$True" ) ;
 
     print "maybe" if ( $very | $fairly ) > 50 ;
 
@@ -716,12 +733,12 @@ values are 1 and 0 respectively. Note that whilst Perl may return 0 or undef
 for false and any other value for true, Math::Logic returns an object whose
 value is either 0 (FALSE) or 1 (TRUE) only. 
 
-    my $true   = Math::Logic->new( -value => TRUE,  -degree => 2 ) ;
-    my $false  = Math::Logic->new( -value => FALSE, -degree => 2 ) ;
+    my $true   = Math::Logic->new( -value => $TRUE,  -degree => 2 ) ;
+    my $false  = Math::Logic->new( -value => $FALSE, -degree => 2 ) ;
    
     my $result = $true & $false ; # my $result = $true->and( $false ) ;
 
-    print $result if $result == FALSE ; 
+    print $result if $result == $FALSE ; 
 
 =head2 3-degree logic
 
@@ -752,22 +769,22 @@ respectively. The + signifies propagating nulls (UNDEFs).
     T  F    F    F
 
     # 3-degree logic (non-propagating)
-    my $true   = Math::Logic->new( -value => TRUE,  -degree => 3 ) ;
-    my $false  = Math::Logic->new( -value => FALSE, -degree => 3 ) ;
-    my $undef  = Math::Logic->new( -value => UNDEF, -degree => 3 ) ;
+    my $true   = Math::Logic->new( -value => $TRUE,  -degree => 3 ) ;
+    my $false  = Math::Logic->new( -value => $FALSE, -degree => 3 ) ;
+    my $undef  = Math::Logic->new( -value => $UNDEF, -degree => 3 ) ;
 
     my $result = $undef & $false ; # my $result = $undef->and( $false ) ;
 
-    print $result if $result == FALSE ; 
+    print $result if $result == $FALSE ; 
 
     # 3-degree logic (propagating)
-    my $true   = Math::Logic->new( -value => TRUE,  -degree => 3, -propagate => 1 ) ;
-    my $false  = Math::Logic->new( -value => FALSE, -degree => 3, -propagate => 1 ) ;
-    my $undef  = Math::Logic->new( -value => UNDEF, -degree => 3, -propagate => 1 ) ;
+    my $true   = Math::Logic->new( -value => $TRUE,  -degree => 3, -propagate => 1 ) ;
+    my $false  = Math::Logic->new( -value => $FALSE, -degree => 3, -propagate => 1 ) ;
+    my $undef  = Math::Logic->new( -value => $UNDEF, -degree => 3, -propagate => 1 ) ;
 
     my $result = $undef & $false ; # my $result = $undef->and( $false ) ;
 
-    print $result if $result == UNDEF ; 
+    print $result if $result == $UNDEF ; 
 
 =head2 multi-degree logic
 
@@ -810,12 +827,12 @@ The truth tables for multi-degree logic work like this:
     100   0
    
     # multi-degree logic
-    my $TRUE   = 100 ; # Define our own TRUE and FALSE
-    my $FALSE  = FALSE ;
-    $true      = Math::Logic->new( -value => $TRUE,  -degree => $TRUE ) ;
-    $very      = Math::Logic->new( -value => 67,     -degree => $TRUE ) ;
-    $fairly    = Math::Logic->new( -value => 33,     -degree => $TRUE ) ;
-    $false     = Math::Logic->new( -value => $FALSE, -degree => $TRUE ) ;
+    my $True   = 100 ; # Define our own TRUE and FALSE
+    my $False  = $FALSE ;
+    $true      = Math::Logic->new( -value => $True,  -degree => $True ) ;
+    $very      = Math::Logic->new( -value => 67,     -degree => $True ) ;
+    $fairly    = Math::Logic->new( -value => 33,     -degree => $True ) ;
+    $false     = Math::Logic->new( -value => $False, -degree => $True ) ;
 
     my $result = $fairly & $very ; # my $result = $fairly->and( $very ) ;
 
@@ -847,11 +864,11 @@ The truth tables for multi-degree logic work like this:
 
     my $x = Math::Logic->new ;
 
-    my $y = Math::Logic->new( -value => FALSE, -degree => 3, -propagate => 0 );
+    my $y = Math::Logic->new( -value => $FALSE, -degree => 3, -propagate => 0 );
 
     my $a = $x->new ; 
 
-    my $b = $y->new( -value => TRUE ) ;
+    my $b = $y->new( -value => $TRUE ) ;
 
 This creates new Math::Logic objects. C<new> should never fail because it will
 munge any arguments into something `sensible'; in particular if the value is
@@ -970,13 +987,13 @@ C<as_string>.
 
 =head2 and and & (object method)
 
-    print "true" if ( $y & $z ) == TRUE ;
+    print "true" if ( $y & $z ) == $TRUE ;
     print "yes"  if $y & 1 ;
-    print "yes"  if TRUE & $y ;
+    print "yes"  if $TRUE & $y ;
     
     $r = $y & $z ; # Creates a new Math::Logic object with the resultant truth value
 
-    print "true" if $y->and( $z ) == TRUE ;
+    print "true" if $y->and( $z ) == $TRUE ;
 
 Applies logical and to two objects. The truth table used depends on the
 object's C<-degree> (and in the case of 3-degree logic on the C<-propagate>).
@@ -984,13 +1001,13 @@ object's C<-degree> (and in the case of 3-degree logic on the C<-propagate>).
 
 =head2 or and | (object method)
 
-    print "true" if ( $y | $z ) == TRUE ;
+    print "true" if ( $y | $z ) == $TRUE ;
     print "yes"  if $y | 1 ;
-    print "yes"  if TRUE | $y ;
+    print "yes"  if $TRUE | $y ;
     
     $r = $y | $z ; # Creates a new Math::Logic object with the resultant truth value
 
-    print "true" if $y->or( $z ) == TRUE ;
+    print "true" if $y->or( $z ) == $TRUE ;
 
 Applies logical or to two objects. The truth table used depends on the
 object's C<-degree> (and in the case of 3-degree logic on the C<-propagate>).
@@ -998,24 +1015,24 @@ object's C<-degree> (and in the case of 3-degree logic on the C<-propagate>).
 
 =head2 xor and ^ (object method)
 
-    print "true" if ( $y ^ $z ) == TRUE ;
+    print "true" if ( $y ^ $z ) == $TRUE ;
     print "yes"  if $y ^ 0 ;
-    print "yes"  if TRUE ^ $y ;
+    print "yes"  if $TRUE ^ $y ;
     
     $r = $y ^ $z ; # Creates a new Math::Logic object with the resultant truth value
 
-    print "true" if $y->xor( $z ) == TRUE ;
+    print "true" if $y->xor( $z ) == $TRUE ;
 
 Applies logical xor to two objects. The truth table used depends on the
 object's C<-degree>. (See the truth tables above.)
 
 =head2 not and ! (object method)
 
-    print "true" if ! $y == TRUE ;
+    print "true" if ! $y == $TRUE ;
     
     $r = ! $y ; # Creates a new Math::Logic object with the resultant truth value
 
-    print "true" if $y->not == TRUE ;
+    print "true" if $y->not == $TRUE ;
 
 Applies logical not to the object. The truth table used depends on the
 object's C<-degree>. (See the truth tables above.)
@@ -1043,9 +1060,22 @@ logic. There is no direct support for it but it can be achieved thus:
 Multi-degree logic has a minimum degree of 4, i.e. 5-value, 0..4.  
 
 If you use & on two incompatible Math::Logic objects perl dies; I believe that
-this is due to a problem with overload.
+this is due to a problem with overload: it does not occur with perl 5.6.0.
 
 =head1 CHANGES
+
+2000/04/15
+
+Have switched constants to readonly scalars, i.e. $TRUE instead of TRUE etc.
+This makes them easier to use for certain things, e.g. string interpolation
+and as array indexes or hash keys. The (now deprecated) constants still work
+but you are recommended to use the constant scalars instead. You will need
+to install C<readonly.pm> which should be available from wherever you got
+Math::Logic.
+
+The bugs with overload do not occur with perl 5.6.0. Added two tests which are
+run if perl's version is > 5.005.
+
 
 2000/02/27
 
