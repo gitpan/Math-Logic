@@ -63,8 +63,8 @@ The only 2-value logic values are 1 (TRUE) and 0 (FALSE).
 The only 3-value logic values are 1 (TRUE), 0 (FALSE) and -1 (UNDEF). Note
 that UNDEF is -1 I<not> C<undef>!
 
-The only multi-value logic values are 0 (FALSE)..<degree> -- the value of TRUE is
-equal to the degree, usually 100.
+The only multi-value logic values are 0 (FALSE)..C<-degree> -- the value of
+TRUE is equal to the degree, usually 100.
 
 Although some useful constants may be exported, this is an object module and
 the results of logical comparisons are Math::Logic objects.
@@ -105,7 +105,7 @@ value is either 0 (FALSE) or 1 (TRUE) only.
 3-value logic has two different truth tables for "and" and "or"; this module
 supports both. In the Perl column F means false or undefined; and T, F and U
 under Math::Logic are objects with values 1 (TRUE), 0 (FALSE) and -1 (UNDEF)
-respectively. The + signifies propagating nulls.
+respectively. The + signifies propagating nulls (UNDEFs).
 
         Perl  Logic        Perl  Logic         Perl  Logic 
     A B and  and+ and    A B or or+  or    A B xor  xor+ xor(same)
@@ -188,7 +188,7 @@ The truth tables for multi-value logic work like this:
     100   0
    
     # multi-value logic
-    my $TRUE   = 100 ; 
+    my $TRUE   = 100 ; # Define our own TRUE and FALSE
     my $FALSE  = FALSE ;
     $true      = Math::Logic->new( -value => $TRUE,  -degree => $TRUE ) ;
     $very      = Math::Logic->new( -value => 67,     -degree => $TRUE ) ;
@@ -280,18 +280,18 @@ values the object may hold; it is always 2 or more.
 
     print $x->propagate ;
 
-This returns whether or not the object propagates NULLs (UNDEF). For 2 or
-multi-value logic always returns FALSE; for 3-value logic may return TRUE or
-FALSE.
+This returns whether or not the object propagates NULLs (UNDEF). Objects using
+2 or multi-value logic always return FALSE; 3-value logic objects may return
+TRUE or FALSE.
 
 =head2 compatible
 
     print $x->compatible( $y ) ;
 
-Returns TRUE or FALSE depending on whether the two object are compatible.
+Returns TRUE or FALSE depending on whether the two objects are compatible.
 Objects are compatible if they have the same C<-degree> and in the case of
 3-value logic the same C<-propagate>. Logical operators will only work on
-compatible objects.
+compatible objects, there is no type-coersion (but see typecasting later).
 
 =head2 as_string and ""
                                     # output:
@@ -388,6 +388,12 @@ logic. There is no direct support for it but it can be achieved thus:
 =head1 CHANGES
 
 2000/02/20
+
+Minor documentation fixes. Also eliminated a warning that occurred under
+5.005.
+
+
+2000/02/19
 
 First version. Ideas taken from my Math::Logic3 and (unpublished) Math::Fuzzy;
 this module is intended to supercede both.

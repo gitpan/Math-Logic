@@ -1,6 +1,6 @@
 package Math::Logic ;    # Documented at the __END__.
 
-# $Id: Logic.pm,v 1.1 2000/02/19 20:03:37 root Exp root $
+# $Id: Logic.pm,v 1.2 2000/02/20 16:55:50 root Exp root $
 
 
 require 5.004 ;
@@ -11,7 +11,7 @@ use integer ; # Forces us to quote all hash keys.
 use Carp ;
 
 use vars qw( $VERSION @ISA @EXPORT_OK %EXPORT_TAGS ) ;
-$VERSION     = '1.00' ;
+$VERSION     = '1.01' ;
 
 use Exporter() ;
 
@@ -134,11 +134,11 @@ sub new_from_string { # Class and object method
 
     if( defined $arg[1] ) {
         if( $arg[1] =~ /^[23]$/o ) {    # 2 or 3 value logic
-            $arg[0] = TRUE() if defined $arg[0] and $arg[0] =~ /^-?[tT]/o ;
+            $arg[0] = TRUE() if defined $arg[0] CORE::and $arg[0] =~ /^-?[tT]/o ;
         }
         else {                          # Multi-value logic
-            $arg[0] = $arg[1] if defined $arg[0] and $arg[0] =~ /^-?[tT]/o ;
-            $arg[0] = FALSE() if defined $arg[0] and $arg[0] =~ /^-?[fF]/o ;
+            $arg[0] = $arg[1] if defined $arg[0] CORE::and $arg[0] =~ /^-?[tT]/o ;
+            $arg[0] = FALSE() if defined $arg[0] CORE::and $arg[0] =~ /^-?[fF]/o ;
         }
     }
     $arg[2] = $arg[2] =~ /^-?[tTpP1]/o ? TRUE() : FALSE() if defined $arg[2] ; 
@@ -188,7 +188,7 @@ sub new { # Class and object method
     $self->{KEY_VALUE()} = DEF_VALUE() if $self->{KEY_VALUE()} !~ /^(?:\d+|-1)$/o ;
 
     if( $self->{KEY_DEGREE()} == 2 ) {      # 2-value logic
-        $self->{KEY_VALUE()} = ( $self->{KEY_VALUE()} and 
+        $self->{KEY_VALUE()} = ( $self->{KEY_VALUE()} CORE::and 
                                  $self->{KEY_VALUE()} != UNDEF() ) ? 
                                     TRUE() : FALSE() ;
         delete $self->{KEY_PROPAGATE()} ; # Don't store what we don't use
@@ -263,7 +263,7 @@ sub value { # Object method
         my $result ;
 
         if( $self->degree == 2 ) {      # 2-value logic
-            $result = ( $value and $value != UNDEF() ) ? TRUE() : FALSE() ;
+            $result = ( $value CORE::and $value != UNDEF() ) ? TRUE() : FALSE() ;
         }
         elsif( $self->degree == 3 ) {   # 3-value logic
             $result = $value ? TRUE() : FALSE() ;
@@ -271,7 +271,7 @@ sub value { # Object method
         }
         else {                          # Multi-value logic
             $result = $value ;
-            $result = FALSE() if $value eq UNDEF() or $value !~ /^\d+$/o ;
+            $result = FALSE() if $value eq UNDEF() CORE::or $value !~ /^\d+$/o ;
             $result = $self->degree if $result > $self->degree ;
         }
 
@@ -318,13 +318,13 @@ sub compatible { # Object method
     eval {
         croak "is an object method" unless ref $self ;
         croak "can only be applied to $class objects not $comp"
-        if ( not ref $comp ) or 
-           ( not $comp->can( 'degree' ) ) or 
-           ( not $comp->can( 'propagate' ) ) ;
+        if ( CORE::not ref $comp ) CORE::or 
+           ( CORE::not $comp->can( 'degree' ) ) CORE::or 
+           ( CORE::not $comp->can( 'propagate' ) ) ;
     } ;
     $class->_croak( $@ ) if $@ ;
     
-    $self->degree    == $comp->degree and
+    $self->degree    == $comp->degree CORE::and
     $self->propagate == $comp->propagate ; 
 }
 
@@ -333,7 +333,7 @@ sub as_string { # Object method
     my $self  = shift ;
     my $class = ref( $self ) || $self ;
     my $full  = shift || 0 ;
-    $full     = 0 unless $full eq '1' or $full eq '-full' ;
+    $full     = 0 unless $full eq '1' CORE::or $full eq '-full' ;
 
     $class->_croak( "is an object method" ) unless ref $self ;
 
@@ -355,7 +355,7 @@ sub as_string { # Object method
         }
         else {
             $result = $self->value ;
-            $result .= '%' if $self->degree == 100 and $full ;
+            $result .= '%' if $self->degree == 100 CORE::and $full ;
         }
     }
 
@@ -384,15 +384,15 @@ sub and { # Object method
     my $result = $self->new ;
 
     if( $self->degree == 2 ) {      # 2-value logic
-        $value = ( $self->value and $comp->value ) ? TRUE() : FALSE() ;
+        $value = ( $self->value CORE::and $comp->value ) ? TRUE() : FALSE() ;
     }
     elsif( $self->degree == 3 ) {   # 3-value logic
         if( $self->propagate ) {
-            if( $self->value == UNDEF() or $comp->value == UNDEF() ) {
+            if( $self->value == UNDEF() CORE::or $comp->value == UNDEF() ) {
                 # At least one is undefined which propagates.
                 $value = UNDEF() ;
             }
-            elsif( $self->value == TRUE() and $comp->value == TRUE() ) {
+            elsif( $self->value == TRUE() CORE::and $comp->value == TRUE() ) {
                 # They're both defined and true.
                 $value = TRUE() ;
             }
@@ -402,11 +402,11 @@ sub and { # Object method
             }
         }
         else {
-            if( $self->value == TRUE() and $comp->value == TRUE() ) {
+            if( $self->value == TRUE() CORE::and $comp->value == TRUE() ) {
                 # Both are defined and true.
                 $value = TRUE() ;
             }
-            elsif( $self->value == FALSE() or $comp->value == FALSE() ) {
+            elsif( $self->value == FALSE() CORE::or $comp->value == FALSE() ) {
                 # At least one is defined and false.
                 $value = FALSE() ;
             }
@@ -444,15 +444,15 @@ sub or { # Object method
     my $result = $self->new ;
 
     if( $self->degree == 2 ) {      # 2-value logic
-        $value = ( $self->value or $comp->value ) ? TRUE() : FALSE() ;
+        $value = ( $self->value CORE::or $comp->value ) ? TRUE() : FALSE() ;
     }
     elsif( $self->degree == 3 ) {   # 3-value logic
         if( $self->propagate ) {
-            if( $self->value == UNDEF() or $comp->value == UNDEF() ) {
+            if( $self->value == UNDEF() CORE::or $comp->value == UNDEF() ) {
                 # At least one is undefined which propagates.
                 $value = UNDEF() ;
             }
-            elsif( $self->value == TRUE() or $comp->value == TRUE() ) {
+            elsif( $self->value == TRUE() CORE::or $comp->value == TRUE() ) {
                 # They're both defined and at least one is true.
                 $value = TRUE() ;
             }
@@ -462,11 +462,11 @@ sub or { # Object method
             }
         }
         else {
-            if( $self->value == TRUE() or $comp->value == TRUE() ) {
+            if( $self->value == TRUE() CORE::or $comp->value == TRUE() ) {
                 # At least one is defined and true.
                 $value = TRUE() ;
             }
-            elsif( $self->value == FALSE() and $comp->value == FALSE() ) {
+            elsif( $self->value == FALSE() CORE::and $comp->value == FALSE() ) {
                 # They're both defined and false.
                 $value = FALSE() ;
             }
@@ -508,7 +508,7 @@ sub xor { # Object method
     }
     elsif( $self->degree == 3 ) {   # 3-value logic
         # Same truth table whether propagating or not.
-        if( $self->value == UNDEF() or $comp->value == UNDEF() ) {
+        if( $self->value == UNDEF() CORE::or $comp->value == UNDEF() ) {
             # At least one is undefined which propagates.
             $value = UNDEF() ;
         }
@@ -646,8 +646,8 @@ The only 2-value logic values are 1 (TRUE) and 0 (FALSE).
 The only 3-value logic values are 1 (TRUE), 0 (FALSE) and -1 (UNDEF). Note
 that UNDEF is -1 I<not> C<undef>!
 
-The only multi-value logic values are 0 (FALSE)..<degree> -- the value of TRUE is
-equal to the degree, usually 100.
+The only multi-value logic values are 0 (FALSE)..C<-degree> -- the value of
+TRUE is equal to the degree, usually 100.
 
 Although some useful constants may be exported, this is an object module and
 the results of logical comparisons are Math::Logic objects.
@@ -688,7 +688,7 @@ value is either 0 (FALSE) or 1 (TRUE) only.
 3-value logic has two different truth tables for "and" and "or"; this module
 supports both. In the Perl column F means false or undefined; and T, F and U
 under Math::Logic are objects with values 1 (TRUE), 0 (FALSE) and -1 (UNDEF)
-respectively. The + signifies propagating nulls.
+respectively. The + signifies propagating nulls (UNDEFs).
 
         Perl  Logic        Perl  Logic         Perl  Logic 
     A B and  and+ and    A B or or+  or    A B xor  xor+ xor(same)
@@ -771,7 +771,7 @@ The truth tables for multi-value logic work like this:
     100   0
    
     # multi-value logic
-    my $TRUE   = 100 ; 
+    my $TRUE   = 100 ; # Define our own TRUE and FALSE
     my $FALSE  = FALSE ;
     $true      = Math::Logic->new( -value => $TRUE,  -degree => $TRUE ) ;
     $very      = Math::Logic->new( -value => 67,     -degree => $TRUE ) ;
@@ -863,18 +863,18 @@ values the object may hold; it is always 2 or more.
 
     print $x->propagate ;
 
-This returns whether or not the object propagates NULLs (UNDEF). For 2 or
-multi-value logic always returns FALSE; for 3-value logic may return TRUE or
-FALSE.
+This returns whether or not the object propagates NULLs (UNDEF). Objects using
+2 or multi-value logic always return FALSE; 3-value logic objects may return
+TRUE or FALSE.
 
 =head2 compatible
 
     print $x->compatible( $y ) ;
 
-Returns TRUE or FALSE depending on whether the two object are compatible.
+Returns TRUE or FALSE depending on whether the two objects are compatible.
 Objects are compatible if they have the same C<-degree> and in the case of
 3-value logic the same C<-propagate>. Logical operators will only work on
-compatible objects.
+compatible objects, there is no type-coersion (but see typecasting later).
 
 =head2 as_string and ""
                                     # output:
@@ -971,6 +971,12 @@ logic. There is no direct support for it but it can be achieved thus:
 =head1 CHANGES
 
 2000/02/20
+
+Minor documentation fixes. Also eliminated a warning that occurred under
+5.005.
+
+
+2000/02/19
 
 First version. Ideas taken from my Math::Logic3 and (unpublished) Math::Fuzzy;
 this module is intended to supercede both.
