@@ -47,6 +47,15 @@ Math::Logic - Provides pure 2, 3 or multi-value logic.
 
     print "maybe" if ( $very | $fairly ) > 50 ;
 
+    # We can have arbitrarily complex expressions; the result is a Math::Logic
+    # object; all arguments must be Math::Logic objects or things which can be
+    # promoted into such and must all be compatible. The outcome depends on
+    # which kind of logic is being used.
+    my $xor = ( $x | $y ) & ( ! ( $x & $y ) ) ; 
+    # This is identical to:
+    my $xor = $x ^ $y ;
+
+
 =head1 DESCRIPTION
 
 Perl's built-in logical operators, C<and>, C<or>, C<xor> and C<not> support
@@ -154,11 +163,10 @@ any integer in-between is a probability.
 
 The truth tables for multi-value logic work like this:
 
-    C<and> lowest  value is the result;
-    C<or>  highest value is the result;
-    C<xor> highest value is the result 
-           unless they're the same in which case the result is FALSE;
-    C<not> degree minus the value is the result.
+    and     lowest  value is the result;
+    or      highest value is the result;
+    xor     by truth table xor(a,b) == and(or(a,b),not(and(a,b)))
+    not     degree minus the value is the result.
 
                Logic
      A   B  and  or xor     
@@ -169,14 +177,14 @@ The truth tables for multi-value logic work like this:
     100 100 100 100   0
       0  33   0  33  33
      33   0   0  33  33
-     33 100  33 100  33
-     33  33  33  33   0
-    100  33  33 100 100
+     33 100  33 100  67
+     33  33  33  33  33 
+    100  33  33 100  67
       0  67   0  67  67
      67   0   0  67  67
-     67 100  67 100 100
-     67  67  67  67   0
-    100  67  67 100 100
+     67 100  67 100  33
+     67  67  67  67  33
+    100  67  67 100  33
      33  67  33  67  67
      67  33  33  67  67
 
@@ -232,7 +240,11 @@ The truth tables for multi-value logic work like this:
     my $b = $y->new( -value => TRUE ) ;
 
 This creates new Math::Logic objects. C<new> should never fail because it will
-munge any arguments into something `sensible'.
+munge any arguments into something `sensible'; in particular if the value is
+set to -1 (UNDEF) for 2 or multi-value logic it is silently converted to 0
+(FALSE). In all other cases anything that is true in Perl is converted to 1
+(TRUE) and everything else to 0 (FALSE).
+
 
 If used as an object method, e.g. for assignment then the settings are those
 of the original object unless overridden. If used as a class method with no
@@ -260,6 +272,16 @@ or equal to the C<-degree> is valid.
 
 This creates new Math::Logic objects. The string B<must> include the first two
 values, which are C<-value> and C<-degree> respectively.
+
+True  values can be expressed as  1, T or any word beginning with T, e.g.
+TRUE or -true; the pattern is /^-?[tT]/. 
+False values can be expressed as  0, F or any word beginning with F, e.g.
+FALSE or -false; the pattern is /^-?[fF]/.
+Undef values can be expressed as -1, U or any word beginning with U, e.g.
+UNDEF or -undef; the pattern is /^-?[uU]/. 
+Propagate is set to true by adding a third parameter matching /^-?[tTpP1]/,
+e.g. -propagate. To set propagate to false either don't include a third
+parameter or include it as 0 (zero).
 
 =head2 value (object method)
 
@@ -407,6 +429,31 @@ logic. There is no direct support for it but it can be achieved thus:
 (none known)
 
 =head1 CHANGES
+
+2000/02/23
+
+Corrected multi-value xor to match the truth table equivalence, i.e. 
+
+    xor(a,b) == and(or(a,b),not(and(a,b)))
+
+which can be expressed in Math::Logic as
+
+    $a->xor( $b ) == $a->or( $b )->and( $a->and( $b )->not )
+
+or as
+
+    $a ^ $b == ( $a | $b ) & ( ! ( $a & $b ) )
+
+
+2000/02/22
+
+Minor correction to _croak so that error messages don't list filename and line
+twice; plus other minor cleanups to improve error output.
+
+Changed the way new_from_string handles string truth values; numeric truth
+values operate as before.
+
+
 
 2000/02/21
 

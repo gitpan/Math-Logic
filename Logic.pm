@@ -1,17 +1,17 @@
 package Math::Logic ;    # Documented at the __END__.
 
-# $Id: Logic.pm,v 1.3 2000/02/21 22:23:18 root Exp root $
+# $Id: Logic.pm,v 1.7 2000/02/23 22:25:33 root Exp root $
 
 
 require 5.004 ;
 
 use strict ;
-use integer ; # Forces us to quote all hash keys.
+use integer ; # Forces us to quote all hash keys in 5.004.
 
 use Carp ;
 
 use vars qw( $VERSION @ISA @EXPORT_OK %EXPORT_TAGS ) ;
-$VERSION     = '1.02' ;
+$VERSION     = '1.10' ;
 
 use Exporter() ;
 
@@ -68,9 +68,12 @@ use constant PROPAGATE     => KEY_PROPAGATE() ;
     sub _croak { # Class and object method
         my $self  = shift ;
         my $class = ref( $self ) || $self ;
+        my $error = shift ;
 
-        my $error = (caller(1))[3] ;
-        croak $error . "() " . shift() . "\n" ;
+        $error = (caller(1))[3] . "() $error" ;
+
+        # croak appends filename and line even if you add a newline in 5.004
+        $error =~ /at.*?line \d+/o ? die "$error\n" : croak "$error\n" ; 
     }
 
     sub _set { # Object method
@@ -81,7 +84,7 @@ use constant PROPAGATE     => KEY_PROPAGATE() ;
 
         eval {
             croak "is an object method" unless ref $self ;
-            croak "invalid field $field" 
+            croak "invalid object key $field" 
             unless exists $_valid_object_key{$field} ;
         } ;
         $class->_croak( $@ ) if $@ ;
@@ -96,7 +99,7 @@ use constant PROPAGATE     => KEY_PROPAGATE() ;
 
         eval {
             croak "is an object method" unless ref $self ;
-            croak "invalid field $field" 
+            croak "invalid object key $field" 
             unless exists $_valid_object_key{$field} ;
         } ;
         $class->_croak( $@ ) if $@ ;
@@ -131,14 +134,12 @@ sub new_from_string { # Class and object method
 
     my @arg = $string =~ /\(?\s*([^,\s\%]+)\%?,\s*([^,\s]+)(?:,\s*([^,\s]+))?\)?/o ;
 
-    if( defined $arg[1] ) {
-        if( $arg[1] =~ /^[23]$/o ) {    # 2 or 3 value logic
-            $arg[0] = TRUE() if defined $arg[0] CORE::and $arg[0] =~ /^-?[tT]/o ;
-        }
-        else {                          # Multi-value logic
-            $arg[0] = $arg[1] if defined $arg[0] CORE::and $arg[0] =~ /^-?[tT]/o ;
-            $arg[0] = FALSE() if defined $arg[0] CORE::and $arg[0] =~ /^-?[fF]/o ;
-        }
+    if( defined $arg[0] ) {
+        # 1, 0 and -1 pass through unchanged; -1 will be silently converted to
+        # 0 except for 3-value logic in $class->new
+        $arg[0] = TRUE()  if $arg[0] =~ /^-?[tT]/o ;
+        $arg[0] = FALSE() if $arg[0] =~ /^-?[fF]/o ;
+        $arg[0] = UNDEF() if $arg[0] =~ /^-?[uU]/o ; 
     }
     $arg[2] = $arg[2] =~ /^-?[tTpP1]/o ? TRUE() : FALSE() if defined $arg[2] ; 
 
@@ -181,7 +182,7 @@ sub new { # Class and object method
 
     $self->{KEY_DEGREE()}    = DEF_DEGREE() 
     unless $self->{KEY_DEGREE()} =~ /^\d+$/o ;
-    $self->{KEY_DEGREE()}    = DEF_DEGREE() 
+    $self->{KEY_DEGREE()}    = MIN_DEGREE() 
     if $self->{KEY_DEGREE()} < MIN_DEGREE() ; 
 
     $self->{KEY_VALUE()} = DEF_VALUE() if $self->{KEY_VALUE()} !~ /^(?:\d+|-1)$/o ;
@@ -190,7 +191,7 @@ sub new { # Class and object method
         $self->{KEY_VALUE()} = ( $self->{KEY_VALUE()} CORE::and 
                                  $self->{KEY_VALUE()} != UNDEF() ) ? 
                                     TRUE() : FALSE() ;
-        delete $self->{KEY_PROPAGATE()} ; # Don't store what we don't use
+        delete $self->{KEY_PROPAGATE()} ;   # Don't store what we don't use
     }
     elsif( $self->{KEY_DEGREE()} == 3 ) {   # 3-value logic
         if( $self->{KEY_VALUE()} != UNDEF() ) {
@@ -201,7 +202,7 @@ sub new { # Class and object method
         $self->{KEY_VALUE()} = FALSE() if $self->{KEY_VALUE()} == UNDEF() ;
         $self->{KEY_VALUE()} = $self->{KEY_DEGREE()} 
         if $self->{KEY_VALUE()} > $self->{KEY_DEGREE()} ;
-        delete $self->{KEY_PROPAGATE()} ; # Don't store what we don't use
+        delete $self->{KEY_PROPAGATE()} ;   # Don't store what we don't use
     }
 
     bless $self, $class ;
@@ -266,11 +267,14 @@ sub value { # Object method
         }
         elsif( $self->degree == 3 ) {   # 3-value logic
             $result = $value ? TRUE() : FALSE() ;
-            $result = UNDEF() if $value eq UNDEF() ;
+            $result = UNDEF() if $value == UNDEF() ;
         }
         else {                          # Multi-value logic
             $result = $value ;
-            $result = FALSE() if $value eq UNDEF() CORE::or $value !~ /^\d+$/o ;
+            # UNDEF() is -1 which doesn't match the pattern, hence we can
+            # abbreviate the following line
+            # $result = FALSE() if $value == UNDEF() CORE::or $value !~ /^\d+$/o ;
+            $result = FALSE() if $value !~ /^\d+$/o ;
             $result = $self->degree if $result > $self->degree ;
         }
 
@@ -316,7 +320,8 @@ sub incompatible { # Object method
 
     eval {
         croak "is an object method" unless ref $self ;
-        croak "can only be applied to $class objects not $comp"
+        croak "can only be applied to $class objects not " . 
+              ( ref( $comp ) || $comp )
         if ( CORE::not ref $comp )              CORE::or 
            ( CORE::not $comp->can( 'degree' ) ) CORE::or 
            ( CORE::not $comp->can( 'propagate' ) ) ;
@@ -339,7 +344,8 @@ sub compatible { # DEPRECATED Object method
 
     eval {
         croak "is an object method" unless ref $self ;
-        croak "can only be applied to $class objects not $comp"
+        croak "can only be applied to $class objects not " . 
+              ( ref( $comp ) || $comp )
         if ( CORE::not ref $comp ) CORE::or 
            ( CORE::not $comp->can( 'degree' ) ) CORE::or 
            ( CORE::not $comp->can( 'propagate' ) ) ;
@@ -523,7 +529,7 @@ sub xor { # Object method
     my $result = $self->new ;
 
     if( $self->degree == 2 ) {      # 2-value logic
-        $value = ( $self->value xor $comp->value ) ? TRUE() : FALSE() ;
+        $value = ( $self->value CORE::xor $comp->value ) ? TRUE() : FALSE() ;
     }
     elsif( $self->degree == 3 ) {   # 3-value logic
         # Same truth table whether propagating or not.
@@ -541,10 +547,12 @@ sub xor { # Object method
         }
     }
     else {                          # Multi-value logic
-        # or is the greatest value
-        $value = $self->value > $comp->value ? $self->value : $comp->value ;
-        # but xor is false if the two values are the same
-        $value = FALSE() if $self->value == $comp->value ;
+        # By truth table xor(a,b) == and(or(a,b),not(and(a,b)))
+        # We could write it thus, but prefer not to use overloading within the
+        # module itself:
+        #   my $temp = ( $self | $comp ) & ( ! ( $self & $comp ) ) ;
+        #   $value   = $temp->value ;
+        $value = $self->or( $comp )->and( $self->and( $comp )->not )->value ;
     }
 
     $result->value( $value ) ;
@@ -648,6 +656,15 @@ Math::Logic - Provides pure 2, 3 or multi-value logic.
     my $x      = Math::Logic->new_from_string( "25,$TRUE" ) ;
 
     print "maybe" if ( $very | $fairly ) > 50 ;
+
+    # We can have arbitrarily complex expressions; the result is a Math::Logic
+    # object; all arguments must be Math::Logic objects or things which can be
+    # promoted into such and must all be compatible. The outcome depends on
+    # which kind of logic is being used.
+    my $xor = ( $x | $y ) & ( ! ( $x & $y ) ) ; 
+    # This is identical to:
+    my $xor = $x ^ $y ;
+
 
 =head1 DESCRIPTION
 
@@ -756,11 +773,10 @@ any integer in-between is a probability.
 
 The truth tables for multi-value logic work like this:
 
-    C<and> lowest  value is the result;
-    C<or>  highest value is the result;
-    C<xor> highest value is the result 
-           unless they're the same in which case the result is FALSE;
-    C<not> degree minus the value is the result.
+    and     lowest  value is the result;
+    or      highest value is the result;
+    xor     by truth table xor(a,b) == and(or(a,b),not(and(a,b)))
+    not     degree minus the value is the result.
 
                Logic
      A   B  and  or xor     
@@ -771,14 +787,14 @@ The truth tables for multi-value logic work like this:
     100 100 100 100   0
       0  33   0  33  33
      33   0   0  33  33
-     33 100  33 100  33
-     33  33  33  33   0
-    100  33  33 100 100
+     33 100  33 100  67
+     33  33  33  33  33 
+    100  33  33 100  67
       0  67   0  67  67
      67   0   0  67  67
-     67 100  67 100 100
-     67  67  67  67   0
-    100  67  67 100 100
+     67 100  67 100  33
+     67  67  67  67  33
+    100  67  67 100  33
      33  67  33  67  67
      67  33  33  67  67
 
@@ -834,7 +850,11 @@ The truth tables for multi-value logic work like this:
     my $b = $y->new( -value => TRUE ) ;
 
 This creates new Math::Logic objects. C<new> should never fail because it will
-munge any arguments into something `sensible'.
+munge any arguments into something `sensible'; in particular if the value is
+set to -1 (UNDEF) for 2 or multi-value logic it is silently converted to 0
+(FALSE). In all other cases anything that is true in Perl is converted to 1
+(TRUE) and everything else to 0 (FALSE).
+
 
 If used as an object method, e.g. for assignment then the settings are those
 of the original object unless overridden. If used as a class method with no
@@ -862,6 +882,16 @@ or equal to the C<-degree> is valid.
 
 This creates new Math::Logic objects. The string B<must> include the first two
 values, which are C<-value> and C<-degree> respectively.
+
+True  values can be expressed as  1, T or any word beginning with T, e.g.
+TRUE or -true; the pattern is /^-?[tT]/. 
+False values can be expressed as  0, F or any word beginning with F, e.g.
+FALSE or -false; the pattern is /^-?[fF]/.
+Undef values can be expressed as -1, U or any word beginning with U, e.g.
+UNDEF or -undef; the pattern is /^-?[uU]/. 
+Propagate is set to true by adding a third parameter matching /^-?[tTpP1]/,
+e.g. -propagate. To set propagate to false either don't include a third
+parameter or include it as 0 (zero).
 
 =head2 value (object method)
 
@@ -1009,6 +1039,31 @@ logic. There is no direct support for it but it can be achieved thus:
 (none known)
 
 =head1 CHANGES
+
+2000/02/23
+
+Corrected multi-value xor to match the truth table equivalence, i.e. 
+
+    xor(a,b) == and(or(a,b),not(and(a,b)))
+
+which can be expressed in Math::Logic as
+
+    $a->xor( $b ) == $a->or( $b )->and( $a->and( $b )->not )
+
+or as
+
+    $a ^ $b == ( $a | $b ) & ( ! ( $a & $b ) )
+
+
+2000/02/22
+
+Minor correction to _croak so that error messages don't list filename and line
+twice; plus other minor cleanups to improve error output.
+
+Changed the way new_from_string handles string truth values; numeric truth
+values operate as before.
+
+
 
 2000/02/21
 

@@ -16,7 +16,7 @@ use strict ;
 
 use vars qw( $Loaded $Count $DEBUG $TRIMWIDTH ) ;
 
-BEGIN { $| = 1 ; print "1..284\n" ; }
+BEGIN { $| = 1 ; print "1..291\n" ; }
 END   { print "not ok 1\n" unless $Loaded ; }
 
 use Math::Logic ':NUM' ;
@@ -101,6 +101,43 @@ eval {
     unless $z->as_string(1) eq '(TRUE,100)' ;
 } ;
 report( "new_from_string", 0, $@ ) ;
+
+eval {
+    $z = Math::Logic->new_from_string( 'TRUE,100' ) ; 
+    die "unexpected " . $z->as_string(1) 
+    unless $z->as_string(1) eq '(1%,100)' ;
+} ;
+report( "new_from_string", 0, $@ ) ;
+
+eval {
+    $z = Math::Logic->new_from_string( '48,100' ) ; 
+    die "unexpected " . $z->as_string(1) 
+    unless $z->as_string(1) eq '(48%,100)' ;
+} ;
+report( "new_from_string", 0, $@ ) ;
+
+eval {
+    $z = Math::Logic->new_from_string( 'F,100' ) ; 
+    die "unexpected " . $z->as_string(1) 
+    unless $z->as_string(1) eq '(FALSE,100)' ;
+} ;
+report( "new_from_string", 0, $@ ) ;
+
+eval {
+    $z = Math::Logic->new_from_string( 'U,3' ) ; 
+    die "unexpected " . $z->as_string(1) 
+    unless $z->as_string(1) eq '(UNDEF,3)' ;
+} ;
+report( "new_from_string", 0, $@ ) ;
+
+eval {
+    # UNDEF is silently converted to FALSE except for 3-value logic.
+    $z = Math::Logic->new_from_string( 'U,30' ) ; 
+    die "unexpected " . $z->as_string(1) 
+    unless $z->as_string(1) eq '(FALSE,30)' ;
+} ;
+report( "new_from_string", 0, $@ ) ;
+
 
 # 2-value logic tests
 
@@ -806,7 +843,7 @@ report( "xor", 0, $@ ) ;
 eval {
     $x = $fairly->xor( $fairly ) ;
     die "xor failed " . $x
-    unless $x == $FALSE ;
+    unless $x == $fairly ;
 } ;
 report( "xor", 0, $@ ) ;
 
@@ -2016,14 +2053,14 @@ report( "|", 0, $@ ) ;
 
 eval {
     $x = $true ^ $false ;
-    die "^ failed " . $x
+    die "$false ^ $true failed " . $x
     unless $x == $TRUE ;
 } ;
 report( "^", 0, $@ ) ;
 
 eval {
     $x = $false ^ $true ;
-    die "^ failed " . $x
+    die "$false ^ $true failed " . $x
     unless $x == $TRUE ;
 } ;
 report( "^", 0, $@ ) ;
@@ -2054,7 +2091,7 @@ report( "^", 0, $@ ) ;
 eval {
     $x = $fairly ^ $fairly ;
     die "^ failed " . $x
-    unless $x == $FALSE ;
+    unless $x == $fairly ;
 } ;
 report( "^", 0, $@ ) ;
 
@@ -2149,6 +2186,19 @@ eval {
     die $y unless $y->propagate == 1 ;
 } ;
 report( "propagate", 0, $@ ) ;
+
+eval {
+    $y = 'Fred' ;
+    $y = 'Wilma' unless $x->incompatible( $y ) ;
+} ;
+report( "incompatible", 1, $@ ) ;
+
+eval {
+    use DirHandle ;
+    $y = DirHandle->new( '.' ) ;
+    $y = 'Wilma' unless $x->incompatible( $y ) ;
+} ;
+report( "incompatible", 1, $@ ) ;
 
 
 
