@@ -1,6 +1,6 @@
 package Math::Logic ;    # Documented at the __END__.
 
-# $Id: Logic.pm,v 1.10 2000/04/16 07:24:00 root Exp root $
+# $Id: Logic.pm,v 1.14 2000/04/27 20:42:42 root Exp root $
 
 
 require 5.004 ;
@@ -8,10 +8,10 @@ require 5.004 ;
 use strict ;
 use integer ; # Forces us to quote all hash keys in 5.004.
 
-use Carp ;
+use Carp qw( croak carp ) ;
 
 use vars qw( $VERSION @ISA @EXPORT_OK %EXPORT_TAGS ) ;
-$VERSION     = '1.13' ;
+$VERSION     = '1.15' ;
 
 use Exporter() ;
 
@@ -52,59 +52,32 @@ use constant STR_UNDEF => $STR_UNDEF ;
 ### Private class constants
 
 use readonly 
-    '$DEF_VALUE'     => $FALSE,
-    '$DEF_DEGREE'    => 3,
-    '$MIN_DEGREE'    => 2,
-    '$DEF_PROPAGATE' => $FALSE,
-
-    '$KEY_VALUE'     => '-value',
-    '$KEY_DEGREE'    => '-degree',
-    '$KEY_PROPAGATE' => '-propagate',
+    '$DEF_VALUE'        => $FALSE,
+    '$DEF_DEGREE'       => 3,
+    '$MIN_DEGREE'       => 2,
+    '$DEF_PROPAGATE'    => $FALSE,
     ;
 
-use readonly 
-    '$PROPAGATE'     => $KEY_PROPAGATE,
-    ;
+### Object keys (there are no class keys)
+#
+#   -value
+#   -degree
+#   -propagate
 
 
 ### Private data and methods 
 #
-#   _croak          class   object
 #   _set                    object
 #   _get                    object
 #   _cmp                    object
+#
 
 {
-    my %_valid_object_key = (
-        $KEY_VALUE     => undef,
-        $KEY_DEGREE    => undef,
-        $KEY_PROPAGATE => undef,
-        ) ;
-
-
-    sub _croak { # Class and object method
-        my $self  = shift ;
-        my $class = ref( $self ) || $self ;
-        my $error = shift ;
-
-        $error = (caller(1))[3] . "() $error" ;
-
-        # croak appends filename and line even if you add a newline in 5.004
-        $error =~ /at.*?line \d+/o ? die "$error\n" : croak "$error\n" ; 
-    }
-
     sub _set { # Object method
         # Caller is responsible for ensuring the assigned value is valid
         my $self  = shift ;
         my $class = ref( $self ) || $self ;
         my $field = shift ;
-
-        eval {
-            croak "is an object method" unless ref $self ;
-            croak "invalid object key $field" 
-            unless exists $_valid_object_key{$field} ;
-        } ;
-        $class->_croak( $@ ) if $@ ;
 
         $self->{$field} = shift ;
     }
@@ -112,16 +85,8 @@ use readonly
     sub _get { # Object method
         my $self  = shift ;
         my $class = ref( $self ) || $self ;
-        my $field = shift ;
 
-        eval {
-            croak "is an object method" unless ref $self ;
-            croak "invalid object key $field" 
-            unless exists $_valid_object_key{$field} ;
-        } ;
-        $class->_croak( $@ ) if $@ ;
-
-        $self->{$field} ;
+        $self->{shift()} ;
     }
 
     sub _cmp { # Object method
@@ -129,12 +94,8 @@ use readonly
         my $class = ref( $self ) || $self ;
         my $comp  = shift ;
 
-        eval {
-            croak "is an object method"               unless ref $self ;
-            $comp = $self->new( $KEY_VALUE => $comp ) unless ref $comp ;
-            croak $self->incompatible( $comp ) if $self->incompatible( $comp ) ;    
-        } ;
-        $class->_croak( $@ ) if $@ ;
+        $comp = $self->new( '-value' => $comp ) unless ref $comp ;
+        { my $err ; croak $err if $err = $self->incompatible( $comp ) }
 
         $self->value <=> $comp->value ; 
     }
@@ -162,9 +123,9 @@ sub new_from_string { # Class and object method
 
     # Ignores settings of calling object if called as an object method.
     $class->new( 
-        $KEY_VALUE     => $arg[0] || $DEF_VALUE,
-        $KEY_DEGREE    => $arg[1] || $DEF_DEGREE,
-        $KEY_PROPAGATE => $arg[2] || $DEF_PROPAGATE,
+        '-value'     => $arg[0] || $DEF_VALUE,
+        '-degree'    => $arg[1] || $DEF_DEGREE,
+        '-propagate' => $arg[2] || $DEF_PROPAGATE,
         ) ;
 }
 
@@ -177,49 +138,50 @@ sub new { # Class and object method
 
     # Set defaults plus parameters
     $self = {
-            $KEY_VALUE     => $DEF_VALUE,
-            $KEY_DEGREE    => $DEF_DEGREE,
-            $KEY_PROPAGATE => $DEF_PROPAGATE,
+            '-value'     => $DEF_VALUE,
+            '-degree'    => $DEF_DEGREE,
+            '-propagate' => $DEF_PROPAGATE,
             %arg
         } ;
 
     # If called as an object method use the calling object's settings unless a
     # parameter has overridden
     if( defined $object ) {
-        $self->{$KEY_VALUE}     = $object->value     
-        unless exists $arg{$KEY_VALUE} ; 
-        $self->{$KEY_DEGREE}    = $object->degree    
-        unless exists $arg{$KEY_DEGREE} ; 
-        $self->{$KEY_PROPAGATE} = $object->propagate 
-        unless exists $arg{$KEY_PROPAGATE} ; 
+        $self->{'-value'}     = $object->value     
+        unless exists $arg{'-value'} ; 
+        $self->{'-degree'}    = $object->degree    
+        unless exists $arg{'-degree'} ; 
+        $self->{'-propagate'} = $object->propagate 
+        unless exists $arg{'-propagate'} ; 
     }
     
     # Ensure the settings are valid
-    $self->{$KEY_PROPAGATE} = $self->{$KEY_PROPAGATE} ? $TRUE : $FALSE ;
+    $self->{'-propagate'} = $self->{'-propagate'} ? $TRUE : $FALSE ;
 
-    $self->{$KEY_DEGREE}    = $DEF_DEGREE 
-    unless $self->{$KEY_DEGREE} =~ /^\d+$/o ;
-    $self->{$KEY_DEGREE}    = $MIN_DEGREE 
-    if $self->{$KEY_DEGREE} < $MIN_DEGREE ; 
+    $self->{'-degree'}    = $DEF_DEGREE 
+    unless $self->{'-degree'} =~ /^\d+$/o ;
+    $self->{'-degree'}    = $MIN_DEGREE 
+    if $self->{'-degree'} < $MIN_DEGREE ; 
 
-    $self->{$KEY_VALUE} = $DEF_VALUE if $self->{$KEY_VALUE} !~ /^(?:\d+|-1)$/o ;
+    $self->{'-value'} = $DEF_VALUE 
+    if not defined $self->{'-value'} or $self->{'-value'} !~ /^(?:\d+|-1)$/o ;
 
-    if( $self->{$KEY_DEGREE} == 2 ) {      # 2-degree logic
-        $self->{$KEY_VALUE} = ( $self->{$KEY_VALUE} CORE::and 
-                                $self->{$KEY_VALUE} != $UNDEF ) ? 
+    if( $self->{'-degree'} == 2 ) {      # 2-degree logic
+        $self->{'-value'} = ( $self->{'-value'} CORE::and 
+                              $self->{'-value'} != $UNDEF ) ? 
                                     $TRUE : $FALSE ;
-        delete $self->{$KEY_PROPAGATE} ;   # Don't store what we don't use
+        delete $self->{'-propagate'} ;   # Don't store what we don't use
     }
-    elsif( $self->{$KEY_DEGREE} == 3 ) {   # 3-degree logic
-        if( $self->{$KEY_VALUE} != $UNDEF ) {
-            $self->{$KEY_VALUE} = $self->{$KEY_VALUE} ? $TRUE : $FALSE ;
+    elsif( $self->{'-degree'} == 3 ) {   # 3-degree logic
+        if( $self->{'-value'} != $UNDEF ) {
+            $self->{'-value'} = $self->{'-value'} ? $TRUE : $FALSE ;
         }
     }
     else {                                  # Multi-degree logic
-        $self->{$KEY_VALUE} = $FALSE if $self->{$KEY_VALUE} == $UNDEF ;
-        $self->{$KEY_VALUE} = $self->{$KEY_DEGREE} 
-        if $self->{$KEY_VALUE} > $self->{$KEY_DEGREE} ;
-        delete $self->{$KEY_PROPAGATE} ;   # Don't store what we don't use
+        $self->{'-value'} = $FALSE if $self->{'-value'} == $UNDEF ;
+        $self->{'-value'} = $self->{'-degree'} 
+        if $self->{'-value'} > $self->{'-degree'} ;
+        delete $self->{'-propagate'} ;   # Don't store what we don't use
     }
 
     bless $self, $class ;
@@ -274,8 +236,6 @@ sub value { # Object method
     my $class = ref( $self ) || $self ;
     my $value = shift ;
 
-    $class->_croak( "is an object method" ) unless ref $self ;
-
     if( defined $value ) {
         my $result ;
 
@@ -295,10 +255,10 @@ sub value { # Object method
             $result = $self->degree if $result > $self->degree ;
         }
 
-        $self->_set( $KEY_VALUE => $result ) ;
+        $self->_set( '-value' => $result ) ;
     }
     
-    $self->_get( $KEY_VALUE ) ;
+    $self->_get( '-value' ) ;
 }
 
 
@@ -306,13 +266,9 @@ sub degree { # Object method
     my $self  = shift ;
     my $class = ref( $self ) || $self ;
 
-    eval {
-        croak "is an object method" unless ref $self ;
-        croak "cannot be changed"   if @_ ;
-    } ;
-    $class->_croak( $@ ) if $@ ;
+    carp "degree is read-only" if @_ ;
     
-    $self->_get( $KEY_DEGREE ) ;
+    $self->_get( '-degree' ) ;
 }
 
 
@@ -320,13 +276,9 @@ sub propagate { # Object method
     my $self  = shift ;
     my $class = ref( $self ) || $self ;
 
-    eval {
-        croak "is an object method" unless ref $self ;
-        croak "cannot be changed"   if @_ ;
-    } ;
-    $class->_croak( $@ ) if $@ ;
-    
-    $self->degree == 3 ? $self->_get( $KEY_PROPAGATE ) : $FALSE ;
+    carp "propagate is read-only" if @_ ;
+
+    $self->degree == 3 ? $self->_get( '-propagate' ) : $FALSE ;
 }
 
 
@@ -335,15 +287,11 @@ sub incompatible { # Object method
     my $class = ref( $self ) || $self ;
     my $comp  = shift ;
 
-    eval {
-        croak "is an object method" unless ref $self ;
-        croak "can only be applied to $class objects not " . 
-              ( ref( $comp ) || $comp )
-        if ( CORE::not ref $comp )              CORE::or 
-           ( CORE::not $comp->can( 'degree' ) ) CORE::or 
-           ( CORE::not $comp->can( 'propagate' ) ) ;
-    } ;
-    $class->_croak( $@ ) if $@ ;
+    croak "operator can only be applied to $class objects not " . 
+        ( ref( $comp ) || $comp )
+    if ( CORE::not ref $comp )              CORE::or 
+       ( CORE::not $comp->can( 'degree' ) ) CORE::or 
+       ( CORE::not $comp->can( 'propagate' ) ) ;
     
     ( $self->degree    == $comp->degree CORE::and
       $self->propagate == $comp->propagate ) ? 0 :
@@ -359,15 +307,10 @@ sub compatible { # DEPRECATED Object method
     my $class = ref( $self ) || $self ;
     my $comp  = shift ;
 
-    eval {
-        croak "is an object method" unless ref $self ;
-        croak "can only be applied to $class objects not " . 
-              ( ref( $comp ) || $comp )
-        if ( CORE::not ref $comp )              CORE::or 
-           ( CORE::not $comp->can( 'degree' ) ) CORE::or 
-           ( CORE::not $comp->can( 'propagate' ) ) ;
-    } ;
-    $class->_croak( $@ ) if $@ ;
+    croak "can only be applied to $class objects not " . ( ref( $comp ) || $comp )
+    if ( CORE::not ref $comp )              CORE::or 
+       ( CORE::not $comp->can( 'degree' ) ) CORE::or 
+       ( CORE::not $comp->can( 'propagate' ) ) ;
     
     $self->degree    == $comp->degree CORE::and
     $self->propagate == $comp->propagate ; 
@@ -379,8 +322,6 @@ sub as_string { # Object method
     my $class = ref( $self ) || $self ;
     my $full  = shift || 0 ;
     $full     = 0 unless $full eq '1' CORE::or $full eq '-full' ;
-
-    $class->_croak( "is an object method" ) unless ref $self ;
 
     my $result = '' ;
 
@@ -406,7 +347,7 @@ sub as_string { # Object method
 
     # e.g. $logic->as_string( -full ) ;
     $result = "($result," . $self->degree . 
-                ( $self->propagate ? "," . $PROPAGATE : '' ) . ")" if $full ; 
+                ( $self->propagate ? "," . '-propagate' : '' ) . ")" if $full ; 
 
     $result ;
 }
@@ -417,12 +358,8 @@ sub and { # Object method
     my $class = ref( $self ) || $self ;
     my $comp  = shift ;
 
-    eval {
-        croak "is an object method"               unless ref $self ;
-        $comp = $self->new( $KEY_VALUE => $comp ) unless ref $comp ;
-        croak $self->incompatible( $comp ) if $self->incompatible( $comp ) ;    
-    } ;
-    $class->_croak( $@ ) if $@ ;
+    $comp = $self->new( '-value' => $comp ) unless ref $comp ;
+    { my $err ; croak $err if $err = $self->incompatible( $comp ) }
 
     my $value ;
     my $result = $self->new ;
@@ -476,12 +413,8 @@ sub or { # Object method
     my $class = ref( $self ) || $self ;
     my $comp  = shift ;
 
-    eval {
-        croak "is an object method"               unless ref $self ;
-        $comp = $self->new( $KEY_VALUE => $comp ) unless ref $comp ;
-        croak $self->incompatible( $comp ) if $self->incompatible( $comp ) ;    
-    } ;
-    $class->_croak( $@ ) if $@ ;
+    $comp = $self->new( '-value' => $comp ) unless ref $comp ;
+    { my $err ; croak $err if $err = $self->incompatible( $comp ) }
     
     my $value ;
     my $result = $self->new ;
@@ -535,12 +468,8 @@ sub xor { # Object method
     my $class = ref( $self ) || $self ;
     my $comp  = shift ;
 
-    eval {
-        croak "is an object method"               unless ref $self ;
-        $comp = $self->new( $KEY_VALUE => $comp ) unless ref $comp ;
-        croak $self->incompatible( $comp ) if $self->incompatible( $comp ) ;    
-    } ;
-    $class->_croak( $@ ) if $@ ;
+    $comp = $self->new( '-value' => $comp ) unless ref $comp ;
+    { my $err ; croak $err if $err = $self->incompatible( $comp ) }
     
     my $value ;
     my $result = $self->new ;
@@ -582,8 +511,6 @@ sub not { # Object method
     my $self  = shift ;
     my $class = ref( $self ) || $self ;
 
-    $class->_croak( "is an object method" ) unless ref $self ;
-    
     my $value ;
     my $result = $self->new ;
 
@@ -1063,6 +990,13 @@ If you use & on two incompatible Math::Logic objects perl dies; I believe that
 this is due to a problem with overload: it does not occur with perl 5.6.0.
 
 =head1 CHANGES
+
+2000/04/26
+
+Deleted quite a lot of internal error checks to improve speed.
+
+Class is now inheritable.
+
 
 2000/04/15
 

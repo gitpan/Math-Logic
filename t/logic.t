@@ -20,10 +20,10 @@ BEGIN {
     $| = 1 ; 
     $FIXEDPERL = $] > 5.005 ? 1 : 0 ; 
     if( $FIXEDPERL ) {
-        print "1..344\n" ; 
+        print "1..332\n" ; 
     }
     else {
-        print "1..342\n" ; 
+        print "1..330\n" ; 
     }
 }
 END   { print "not ok 1\n" unless $Loaded ; }
@@ -2202,19 +2202,7 @@ eval {
 } ;
 report( "incompatible", 1, $@, __LINE__ ) ;
 
-eval {
-    use DirHandle ;
-    $y = DirHandle->new( '.' ) ;
-    $y = 'Wilma' unless $x->incompatible( $y ) ;
-} ;
-report( "incompatible", 1, $@, __LINE__ ) ;
-
 # error messages
-
-eval {
-    Math::Logic->incompatible ;
-} ;
-report( "incompatible", 1, $@, __LINE__ ) ;
 
 eval {
     $x->incompatible( 5 ) ;
@@ -2234,17 +2222,7 @@ eval {
 report( "_set", 1, $@, __LINE__ ) ;
 
 eval {
-    $x->_set( -fake ) ;
-} ;
-report( "_get", 1, $@, __LINE__ ) ;
-
-eval {
     Math::Logic->_get ;
-} ;
-report( "_get", 1, $@, __LINE__ ) ;
-
-eval {
-    $x->_get( -fake ) ;
 } ;
 report( "_get", 1, $@, __LINE__ ) ;
 
@@ -2437,47 +2415,6 @@ eval {
 } ;
 report( "negate-", 1, $@, __LINE__ ) ;
 
-
-eval {
-    Math::Logic->value ;
-} ;
-report( "value", 1, $@, __LINE__ ) ;
-
-eval {
-    Math::Logic->degree ;
-} ;
-report( "degree", 1, $@, __LINE__ ) ;
-
-eval {
-    $x->degree( 5 ) ;
-} ;
-report( "degree", 1, $@, __LINE__ ) ;
-
-
-eval {
-    Math::Logic->propagate ;
-} ;
-report( "propagate", 1, $@, __LINE__ ) ;
-
-eval {
-    $x->propagate( 5 ) ;
-} ;
-report( "propagate", 1, $@, __LINE__ ) ;
-
-eval {
-    Math::Logic->incompatible ;
-} ;
-report( "incompatible", 1, $@, __LINE__ ) ;
-
-eval {
-    Math::Logic->as_string ;
-} ;
-report( "as_string", 1, $@, __LINE__ ) ;
-
-eval {
-    Math::Logic->and( $y ) ;
-} ;
-report( "and", 1, $@, __LINE__ ) ;
 
 eval {
     $x->and( $y ) ;

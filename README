@@ -437,6 +437,13 @@ this is due to a problem with overload: it does not occur with perl 5.6.0.
 
 =head1 CHANGES
 
+2000/04/26
+
+Deleted quite a lot of internal error checks to improve speed.
+
+Class is now inheritable.
+
+
 2000/04/15
 
 Have switched constants to readonly scalars, i.e. $TRUE instead of TRUE etc.
