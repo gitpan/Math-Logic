@@ -437,6 +437,11 @@ this is due to a problem with overload: it does not occur with perl 5.6.0.
 
 =head1 CHANGES
 
+2000/05/22
+
+Dropped use of readonly pragma.
+
+
 2000/04/26
 
 Deleted quite a lot of internal error checks to improve speed.

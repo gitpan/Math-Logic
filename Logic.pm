@@ -1,6 +1,6 @@
 package Math::Logic ;    # Documented at the __END__.
 
-# $Id: Logic.pm,v 1.14 2000/04/27 20:42:42 root Exp root $
+# $Id: Logic.pm,v 1.15 2000/05/15 22:27:16 root Exp root $
 
 
 require 5.004 ;
@@ -11,7 +11,7 @@ use integer ; # Forces us to quote all hash keys in 5.004.
 use Carp qw( croak carp ) ;
 
 use vars qw( $VERSION @ISA @EXPORT_OK %EXPORT_TAGS ) ;
-$VERSION     = '1.15' ;
+$VERSION     = '1.18' ;
 
 use Exporter() ;
 
@@ -28,15 +28,14 @@ use Exporter() ;
 
 ### Public class constants 
 
-use readonly 
-    '$TRUE'          => 1,
-    '$FALSE'         => 0,
-    '$UNDEF'         => -1,
+use vars qw( $TRUE $FALSE $UNDEF $STR_TRUE $STR_FALSE $STR_UNDEF ) ;
+*TRUE            =  \1 ;
+*FALSE           =  \0 ;
+*UNDEF           = \-1 ;
 
-    '$STR_TRUE'      => 'TRUE',
-    '$STR_FALSE'     => 'FALSE',
-    '$STR_UNDEF'     => 'UNDEF',
-    ;
+*STR_TRUE        = \'TRUE' ;
+*STR_FALSE       = \'FALSE' ;
+*STR_UNDEF       = \'UNDEF' ;
 
 ### Public class constants -- DEPRECATED
 
@@ -51,12 +50,11 @@ use constant STR_UNDEF => $STR_UNDEF ;
 
 ### Private class constants
 
-use readonly 
-    '$DEF_VALUE'        => $FALSE,
-    '$DEF_DEGREE'       => 3,
-    '$MIN_DEGREE'       => 2,
-    '$DEF_PROPAGATE'    => $FALSE,
-    ;
+my $DEF_VALUE       = $FALSE ;
+my $DEF_DEGREE      = 3 ;
+my $MIN_DEGREE      = 2 ;
+my $DEF_PROPAGATE   = $FALSE ;
+
 
 ### Object keys (there are no class keys)
 #
@@ -76,22 +74,24 @@ use readonly
     sub _set { # Object method
         # Caller is responsible for ensuring the assigned value is valid
         my $self  = shift ;
-        my $class = ref( $self ) || $self ;
+#        my $class = ref( $self ) || $self ;
         my $field = shift ;
 
         $self->{$field} = shift ;
     }
 
+
     sub _get { # Object method
         my $self  = shift ;
-        my $class = ref( $self ) || $self ;
+#        my $class = ref( $self ) || $self ;
 
         $self->{shift()} ;
     }
 
+
     sub _cmp { # Object method
         my $self  = shift ;
-        my $class = ref( $self ) || $self ;
+#        my $class = ref( $self ) || $self ;
         my $comp  = shift ;
 
         $comp = $self->new( '-value' => $comp ) unless ref $comp ;
@@ -119,7 +119,8 @@ sub new_from_string { # Class and object method
         $arg[0] = $FALSE if $arg[0] =~ /^-?[fF]/o ;
         $arg[0] = $UNDEF if $arg[0] =~ /^-?[uU]/o ; 
     }
-    $arg[2] = $arg[2] =~ /^-?[tTpP1]/o ? $TRUE : $FALSE if defined $arg[2] ; 
+    $arg[2] = $arg[2] =~ /^-?[tTpP1]/o ? 
+                        $TRUE : $FALSE if defined $arg[2] ; 
 
     # Ignores settings of calling object if called as an object method.
     $class->new( 
@@ -177,7 +178,7 @@ sub new { # Class and object method
             $self->{'-value'} = $self->{'-value'} ? $TRUE : $FALSE ;
         }
     }
-    else {                                  # Multi-degree logic
+    else {                                      # Multi-degree logic
         $self->{'-value'} = $FALSE if $self->{'-value'} == $UNDEF ;
         $self->{'-value'} = $self->{'-degree'} 
         if $self->{'-value'} > $self->{'-degree'} ;
@@ -233,20 +234,20 @@ use overload
 
 sub value { # Object method
     my $self  = shift ;
-    my $class = ref( $self ) || $self ;
+#    my $class = ref( $self ) || $self ;
     my $value = shift ;
 
     if( defined $value ) {
         my $result ;
 
-        if( $self->degree == 2 ) {      # 2-degree logic
+        if( $self->degree == 2 ) {       # 2-degree logic
             $result = ( $value CORE::and $value != $UNDEF ) ? $TRUE : $FALSE ;
         }
-        elsif( $self->degree == 3 ) {   # 3-degree logic
+        elsif( $self->degree == 3 ) {    # 3-degree logic
             $result = $value ? $TRUE : $FALSE ;
             $result = $UNDEF if $value == $UNDEF ;
         }
-        else {                          # Multi-degree logic
+        else {                                  # Multi-degree logic
             $result = $value ;
             # $UNDEF is -1 which doesn't match the pattern, hence we can
             # abbreviate the following line
@@ -264,7 +265,7 @@ sub value { # Object method
 
 sub degree { # Object method
     my $self  = shift ;
-    my $class = ref( $self ) || $self ;
+#    my $class = ref( $self ) || $self ;
 
     carp "degree is read-only" if @_ ;
     
@@ -274,7 +275,7 @@ sub degree { # Object method
 
 sub propagate { # Object method
     my $self  = shift ;
-    my $class = ref( $self ) || $self ;
+#    my $class = ref( $self ) || $self ;
 
     carp "propagate is read-only" if @_ ;
 
@@ -319,20 +320,20 @@ sub compatible { # DEPRECATED Object method
 
 sub as_string { # Object method
     my $self  = shift ;
-    my $class = ref( $self ) || $self ;
+#    my $class = ref( $self ) || $self ;
     my $full  = shift || 0 ;
     $full     = 0 unless $full eq '1' CORE::or $full eq '-full' ;
 
     my $result = '' ;
 
-    if( $self->degree == 2 ) {      # 2-degree logic
+    if( $self->degree == 2 ) {       # 2-degree logic
         $result = $self->value ? $STR_TRUE : $STR_FALSE ;
     }
-    elsif( $self->degree == 3 ) {   # 3-degree logic
+    elsif( $self->degree == 3 ) {    # 3-degree logic
         $result = $self->value ? $STR_TRUE : $STR_FALSE ;
         $result = $STR_UNDEF if $self->value == $UNDEF ;
     }
-    else {                          # Multi-degree logic
+    else {                                  # Multi-degree logic
         if( $self->value == $FALSE ) {
             $result = $STR_FALSE ;
         }
@@ -355,7 +356,7 @@ sub as_string { # Object method
 
 sub and { # Object method
     my $self  = shift ;
-    my $class = ref( $self ) || $self ;
+#    my $class = ref( $self ) || $self ;
     my $comp  = shift ;
 
     $comp = $self->new( '-value' => $comp ) unless ref $comp ;
@@ -364,10 +365,10 @@ sub and { # Object method
     my $value ;
     my $result = $self->new ;
 
-    if( $self->degree == 2 ) {      # 2-degree logic
+    if( $self->degree == 2 ) {       # 2-degree logic
         $value = ( $self->value CORE::and $comp->value ) ? $TRUE : $FALSE ;
     }
-    elsif( $self->degree == 3 ) {   # 3-degree logic
+    elsif( $self->degree == 3 ) {    # 3-degree logic
         if( $self->propagate ) {
             if( $self->value == $UNDEF CORE::or $comp->value == $UNDEF ) {
                 # At least one is undefined which propagates.
@@ -397,7 +398,7 @@ sub and { # Object method
             }
         }
     }
-    else {                          # Multi-degree logic
+    else {                                  # Multi-degree logic
         # and is the lowest value
         $value = $self->value < $comp->value ? $self->value : $comp->value ;
     }
@@ -410,7 +411,7 @@ sub and { # Object method
 
 sub or { # Object method
     my $self  = shift ;
-    my $class = ref( $self ) || $self ;
+#    my $class = ref( $self ) || $self ;
     my $comp  = shift ;
 
     $comp = $self->new( '-value' => $comp ) unless ref $comp ;
@@ -419,10 +420,10 @@ sub or { # Object method
     my $value ;
     my $result = $self->new ;
 
-    if( $self->degree == 2 ) {      # 2-degree logic
+    if( $self->degree == 2 ) {       # 2-degree logic
         $value = ( $self->value CORE::or $comp->value ) ? $TRUE : $FALSE ;
     }
-    elsif( $self->degree == 3 ) {   # 3-degree logic
+    elsif( $self->degree == 3 ) {    # 3-degree logic
         if( $self->propagate ) {
             if( $self->value == $UNDEF CORE::or $comp->value == $UNDEF ) {
                 # At least one is undefined which propagates.
@@ -452,7 +453,7 @@ sub or { # Object method
             }
         }
     }
-    else {                          # Multi-degree logic
+    else {                                  # Multi-degree logic
         # or is the greatest value
         $value = $self->value > $comp->value ? $self->value : $comp->value ;
     }
@@ -465,7 +466,7 @@ sub or { # Object method
 
 sub xor { # Object method
     my $self  = shift ;
-    my $class = ref( $self ) || $self ;
+#    my $class = ref( $self ) || $self ;
     my $comp  = shift ;
 
     $comp = $self->new( '-value' => $comp ) unless ref $comp ;
@@ -474,10 +475,10 @@ sub xor { # Object method
     my $value ;
     my $result = $self->new ;
 
-    if( $self->degree == 2 ) {      # 2-degree logic
+    if( $self->degree == 2 ) {       # 2-degree logic
         $value = ( $self->value CORE::xor $comp->value ) ? $TRUE : $FALSE ;
     }
-    elsif( $self->degree == 3 ) {   # 3-degree logic
+    elsif( $self->degree == 3 ) {    # 3-degree logic
         # Same truth table whether propagating or not.
         if( $self->value == $UNDEF CORE::or $comp->value == $UNDEF ) {
             # At least one is undefined which propagates.
@@ -492,7 +493,7 @@ sub xor { # Object method
             $value = $TRUE ;
         }
     }
-    else {                          # Multi-degree logic
+    else {                                  # Multi-degree logic
         # By truth table xor(a,b) == and(or(a,b),not(and(a,b)))
         # We could write it thus, but prefer not to use overloading within the
         # module itself:
@@ -509,15 +510,15 @@ sub xor { # Object method
 
 sub not { # Object method
     my $self  = shift ;
-    my $class = ref( $self ) || $self ;
+#    my $class = ref( $self ) || $self ;
 
     my $value ;
     my $result = $self->new ;
 
-    if( $self->degree == 2 ) {      # 2-degree logic
+    if( $self->degree == 2 ) {       # 2-degree logic
         $value = ( $self->value ? $FALSE : $TRUE ) ;
     }
-    elsif( $self->degree == 3 ) {   # 3-degree logic
+    elsif( $self->degree == 3 ) {    # 3-degree logic
         # Same truth table whether propagating or not.
         if( $self->value == $UNDEF ) {
             # It's undefined which propogates.
@@ -532,7 +533,7 @@ sub not { # Object method
             $value = $TRUE ;
         }
     }
-    else {                          # Multi-degree logic
+    else {                                  # Multi-degree logic
         $value = $self->degree - $self->value ;
     }
 
@@ -990,6 +991,11 @@ If you use & on two incompatible Math::Logic objects perl dies; I believe that
 this is due to a problem with overload: it does not occur with perl 5.6.0.
 
 =head1 CHANGES
+
+2000/05/22
+
+Dropped use of readonly pragma.
+
 
 2000/04/26
 
