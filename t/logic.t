@@ -16,7 +16,7 @@ use strict ;
 
 use vars qw( $Loaded $Count $DEBUG $TRIMWIDTH ) ;
 
-BEGIN { $| = 1 ; print "1..283\n" ; }
+BEGIN { $| = 1 ; print "1..284\n" ; }
 END   { print "not ok 1\n" unless $Loaded ; }
 
 use Math::Logic ':NUM' ;
@@ -2096,7 +2096,12 @@ eval {
     $y = Math::Logic->new_from_string('0,3') ;
     $z = $x->and( $y ) ;
 } ;
-report( "compatible", 1, $@ ) ;
+report( "incompatible", 1, $@ ) ;
+
+eval {
+    die $x->incompatible( $y ) if $x->incompatible( $y ) ;
+} ;
+report( "incompatible", 1, $@ ) ;
 
 #eval {
 #    $x = Math::Logic->new_from_string('1,2') ;

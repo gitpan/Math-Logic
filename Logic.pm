@@ -1,6 +1,6 @@
 package Math::Logic ;    # Documented at the __END__.
 
-# $Id: Logic.pm,v 1.2 2000/02/20 16:55:50 root Exp root $
+# $Id: Logic.pm,v 1.3 2000/02/21 22:23:18 root Exp root $
 
 
 require 5.004 ;
@@ -11,7 +11,7 @@ use integer ; # Forces us to quote all hash keys.
 use Carp ;
 
 use vars qw( $VERSION @ISA @EXPORT_OK %EXPORT_TAGS ) ;
-$VERSION     = '1.01' ;
+$VERSION     = '1.02' ;
 
 use Exporter() ;
 
@@ -112,8 +112,7 @@ use constant PROPAGATE     => KEY_PROPAGATE() ;
         eval {
             croak "is an object method"                unless ref $self ;
             $comp = $self->new( KEY_VALUE() => $comp ) unless ref $comp ;
-            croak "$self and $comp are incompatible" 
-            unless $self->compatible( $comp ) ;    
+            croak $self->incompatible( $comp ) if $self->incompatible( $comp ) ;    
         } ;
         $class->_croak( $@ ) if $@ ;
 
@@ -310,7 +309,30 @@ sub propagate { # Object method
 }
 
 
-sub compatible { # Object method
+sub incompatible { # Object method
+    my $self  = shift ;
+    my $class = ref( $self ) || $self ;
+    my $comp  = shift ;
+
+    eval {
+        croak "is an object method" unless ref $self ;
+        croak "can only be applied to $class objects not $comp"
+        if ( CORE::not ref $comp )              CORE::or 
+           ( CORE::not $comp->can( 'degree' ) ) CORE::or 
+           ( CORE::not $comp->can( 'propagate' ) ) ;
+    } ;
+    $class->_croak( $@ ) if $@ ;
+    
+    ( $self->degree    == $comp->degree CORE::and
+      $self->propagate == $comp->propagate ) ? 0 :
+      ref( $self ) . "(" . $self->degree . "," . $self->propagate . ")" .
+      " and " .
+      ref( $comp ) . "(" . $comp->degree . "," . $comp->propagate . ")" .
+      " are incompatible" ;
+}
+
+
+sub compatible { # DEPRECATED Object method
     my $self  = shift ;
     my $class = ref( $self ) || $self ;
     my $comp  = shift ;
@@ -375,8 +397,7 @@ sub and { # Object method
     eval {
         croak "is an object method"                unless ref $self ;
         $comp = $self->new( KEY_VALUE() => $comp ) unless ref $comp ;
-        croak "$self and $comp are incompatible" 
-        unless $self->compatible( $comp ) ;    
+        croak $self->incompatible( $comp ) if $self->incompatible( $comp ) ;    
     } ;
     $class->_croak( $@ ) if $@ ;
 
@@ -435,8 +456,7 @@ sub or { # Object method
     eval {
         croak "is an object method"                unless ref $self ;
         $comp = $self->new( KEY_VALUE() => $comp ) unless ref $comp ;
-        croak "$self and $comp are incompatible" 
-        unless $self->compatible( $comp ) ;    
+        croak $self->incompatible( $comp ) if $self->incompatible( $comp ) ;    
     } ;
     $class->_croak( $@ ) if $@ ;
     
@@ -495,8 +515,7 @@ sub xor { # Object method
     eval {
         croak "is an object method"                unless ref $self ;
         $comp = $self->new( KEY_VALUE() => $comp ) unless ref $comp ;
-        croak "$self and $comp are incompatible" 
-        unless $self->compatible( $comp ) ;    
+        croak $self->incompatible( $comp ) if $self->incompatible( $comp ) ;    
     } ;
     $class->_croak( $@ ) if $@ ;
     
@@ -789,7 +808,8 @@ The truth tables for multi-value logic work like this:
     value                   object
     degree                  object
     propagate               object
-    compatible              object
+    incompatible            object
+    compatible              object (deprecated)
     as_string               object 
     and                     object (same as &)
     or                      object (same as |)
@@ -803,7 +823,7 @@ The truth tables for multi-value logic work like this:
     ^                       object (logical xor)
     !                       object (logical not)
 
-=head2 new
+=head2 new (class and object method)
 
     my $x = Math::Logic->new ;
 
@@ -832,7 +852,7 @@ and 0 are valid (TRUE and FALSE); for 3-value logic 1, 0, and -1 are valid
 (TRUE, FALSE and UNDEF); for multi-value logic any positive integer less than
 or equal to the C<-degree> is valid.
 
-=head2 new_from_string
+=head2 new_from_string (class and object method)
 
     my $x = Math::Logic->new_from_string( '1,2' ) ;
     my $y = Math::Logic->new_from_string( 'TRUE,3,-propagate' ) ;
@@ -843,7 +863,7 @@ or equal to the C<-degree> is valid.
 This creates new Math::Logic objects. The string B<must> include the first two
 values, which are C<-value> and C<-degree> respectively.
 
-=head2 value
+=head2 value (object method)
 
     print $x->value ;
     print $x ;
@@ -852,14 +872,14 @@ This returns the numeric value of the object. For 2-value logic this will
 always be 1 or 0; for 3-value logic the value will be 1, 0 or -1; for
 multi-value logic the value will be a positive integer <= C<-degree>. 
 
-=head2 degree
+=head2 degree (object method)
 
     print $x->degree ;
 
 This returns the degree of the object, i.e. the number of possible truth
 values the object may hold; it is always 2 or more.
 
-=head2 propagate
+=head2 propagate (object method)
 
     print $x->propagate ;
 
@@ -867,7 +887,27 @@ This returns whether or not the object propagates NULLs (UNDEF). Objects using
 2 or multi-value logic always return FALSE; 3-value logic objects may return
 TRUE or FALSE.
 
-=head2 compatible
+=head2 incompatible (object method)
+
+    print $x & $y unless $x->incompatible( $y ) ; 
+
+Returns FALSE if the objects are compatible; returns an error string if
+incompatible (which Perl treats as TRUE), e.g.:
+
+    $x = Math::Logic->new_from_string('1,2') ;
+    $y = Math::Logic->new_from_string('0,3') ;
+    # The above are incompatible because the first uses 2-value logic and the
+    # second uses 3-value logic.
+    print $x->incompatible( $y ) if $x->incompatible( $y ) ;
+    # This will print something like:
+    Math::Logic(2,0) and Math::Logic(3,0) are incompatible at ./logic.t line 2102
+    # The first number given is the degree and the second the propagate setting
+
+Objects are compatible if they have the same C<-degree> and in the case of
+3-value logic the same C<-propagate>. Logical operators will only work on
+compatible objects, there is no type-coersion (but see typecasting later).
+
+=head2 compatible DEPRECATED (object method)
 
     print $x->compatible( $y ) ;
 
@@ -876,7 +916,7 @@ Objects are compatible if they have the same C<-degree> and in the case of
 3-value logic the same C<-propagate>. Logical operators will only work on
 compatible objects, there is no type-coersion (but see typecasting later).
 
-=head2 as_string and ""
+=head2 as_string and "" (object method)
                                     # output:
     print $x->as_string ;           # TRUE
     print $x->as_string( 1 ) ;      # (TRUE,2)
@@ -894,7 +934,7 @@ for you as necessary; however if you want a string that can be saved, (perhaps
 to be read in using C<new_from_string> later), you can pass an argument to
 C<as_string>.
 
-=head2 and and &
+=head2 and and & (object method)
 
     print "true" if ( $y & $z ) == TRUE ;
     print "yes"  if $y & 1 ;
@@ -908,7 +948,7 @@ Applies logical and to two objects. The truth table used depends on the
 object's C<-degree> (and in the case of 3-value logic on the C<-propagate>).
 (See the truth tables above.)
 
-=head2 or and |
+=head2 or and | (object method)
 
     print "true" if ( $y | $z ) == TRUE ;
     print "yes"  if $y | 1 ;
@@ -922,7 +962,7 @@ Applies logical or to two objects. The truth table used depends on the
 object's C<-degree> (and in the case of 3-value logic on the C<-propagate>).
 (See the truth tables above.)
 
-=head2 xor and ^
+=head2 xor and ^ (object method)
 
     print "true" if ( $y ^ $z ) == TRUE ;
     print "yes"  if $y ^ 0 ;
@@ -935,7 +975,7 @@ object's C<-degree> (and in the case of 3-value logic on the C<-propagate>).
 Applies logical xor to two objects. The truth table used depends on the
 object's C<-degree>. (See the truth tables above.)
 
-=head2 not and !
+=head2 not and ! (object method)
 
     print "true" if ! $y == TRUE ;
     
@@ -946,7 +986,7 @@ object's C<-degree>. (See the truth tables above.)
 Applies logical not to the object. The truth table used depends on the
 object's C<-degree>. (See the truth tables above.)
 
-=head2 comparisons and <=>
+=head2 comparisons and <=> (object method)
 
 All the standard (numeric) comparison operators may be applied to Math::Logic
 objects, i.e. <, <=, >, =>, ==, != and <=>.
@@ -969,6 +1009,12 @@ logic. There is no direct support for it but it can be achieved thus:
 (none known)
 
 =head1 CHANGES
+
+2000/02/21
+
+Added incompatible method and now deprecate compatible method; this provides
+better error messages; updated test script.
+
 
 2000/02/20
 
